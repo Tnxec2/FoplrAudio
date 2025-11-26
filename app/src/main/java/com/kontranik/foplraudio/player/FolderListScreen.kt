@@ -23,6 +23,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.FolderBookmark
 
 @Composable
@@ -33,7 +35,7 @@ fun FolderListScreen(
 ) {
     if (folders.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Drücke + um einen Musikordner hinzuzufügen", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.press_to_add_a_music_folder), style = MaterialTheme.typography.bodyLarge)
         }
     } else {
         LazyColumn {
@@ -47,14 +49,14 @@ fun FolderListScreen(
                     trailingContent = {
                         Box {
                             IconButton(onClick = { expanded = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "Optionen")
+                                Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.options))
                             }
                             DropdownMenu(
                                 expanded = expanded,
                                 onDismissRequest = { expanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("Entfernen") },
+                                    text = { Text(stringResource(R.string.remove)) },
                                     onClick = {
                                         expanded = false
                                         onRemoveFolder(folder)

@@ -43,10 +43,12 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
+import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.PlayerStatus
 import com.kontranik.foplraudio.player.helpers.formatDuration
 
@@ -134,21 +136,21 @@ private fun PlayerBarContent(
             if (imageBitmap != null) {
                 Image(
                     bitmap = imageBitmap,
-                    contentDescription = "Cover Art",
+                    contentDescription = stringResource(R.string.cover_art),
                     modifier = artworkModifier,
                     contentScale = ContentScale.Crop
                 )
             } else {
                 Icon(
                     fallBackIcon,
-                    contentDescription = "Medienart",
+                    contentDescription = stringResource(R.string.music_note),
                     modifier = artworkModifier.padding(8.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = status.currentTrackTitle.ifEmpty { "Kein Titel" },
+                    text = status.currentTrackTitle.ifEmpty { stringResource(R.string.no_title) },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodyMedium,
@@ -170,7 +172,7 @@ private fun PlayerBarContent(
         ) {
 
             IconButton(onClick = { skipPrev() }) {
-                Icon(Icons.Default.SkipPrevious, contentDescription = "Zurück")
+                Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.previous))
             }
 
             IconButton(
@@ -181,13 +183,13 @@ private fun PlayerBarContent(
             ) {
                 Icon(
                     if (status.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = "Play/Pause",
+                    contentDescription = stringResource(R.string.play_pause),
                     tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
 
             IconButton(onClick = { skipNext() }) {
-                Icon(Icons.Default.SkipNext, contentDescription = "Weiter")
+                Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.next))
             }
 
             VerticalDivider(Modifier.height(14.dp))
@@ -195,7 +197,7 @@ private fun PlayerBarContent(
             IconButton(onClick = { togglePauseAtEndOfMediaItems() }) {
                 Icon(
                     Icons.Default.PlayDisabled,
-                    contentDescription = "Pause nach Titel",
+                    contentDescription = stringResource(R.string.pause_after_current_item),
                     tint = if (status.pauseAtEndOfMediaItems) MaterialTheme.colorScheme.error else LocalContentColor.current
                 )
             }
@@ -203,7 +205,7 @@ private fun PlayerBarContent(
             IconButton(onClick = { toggleShuffle() }) {
                 Icon(
                     Icons.Default.Shuffle,
-                    contentDescription = "Shuffle",
+                    contentDescription = stringResource(R.string.shuffle),
                     tint = if (status.shuffleMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
                 )
             }
@@ -215,7 +217,7 @@ private fun PlayerBarContent(
                 }
                 Icon(
                     icon,
-                    contentDescription = "Repeat",
+                    contentDescription = stringResource(R.string.repeat),
                     tint = if (status.repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else LocalContentColor.current
                 )
             }
@@ -230,7 +232,7 @@ private fun PlayerBarContentPreview() {
     Surface() {
         PlayerBarContent(
             status = PlayerStatus(
-                currentTrackTitle = "Test Titel",
+                currentTrackTitle = "Test title",
                 currentTrackArtist = "Artist",
                 currentArtworkBytes = null,
                 duration = 120000,

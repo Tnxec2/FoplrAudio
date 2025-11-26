@@ -1,3 +1,26 @@
 <resources>
     <string name="app_name">FoplrAudio</string>
+    <string name="music_places">Music places</string>
+    <string name="current_playlist">Current playlist</string>
+    <string name="back">Back</string>
+    <string name="add_place">add place</string>
+    <string name="playlist_is_empty">Playlist is empty</string>
+    <string name="playing">Playing</string>
+    <string name="cover_art">Cover Art</string>
+    <string name="music_note">Music Note</string>
+    <string name="remove">Remove</string>
+    <string name="play_all_recursive">Play all (recursive)</string>
+    <string name="options">Options</string>
+    <string name="play_folder">Play Folder</string>
+    <string name="press_to_add_a_music_folder">Press + to add a music folder</string>
+    <string name="repeat">Repeat</string>
+    <string name="shuffle">Shuffle</string>
+    <string name="pause_after_current_item">Pause after current item</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="play_pause">Play/Pause</string>
+    <string name="no_title">No title</string>
+    <string name="unknown_folder">Unknown Folder</string>
+    <string name="unknown">Unknown</string>
+    <string name="no_audio_files_found">No audio files found</string>
 </resources>

@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -29,9 +30,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.net.toUri
+import com.kontranik.foplraudio.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.P)
@@ -53,10 +56,10 @@ fun AudioPlayerApp() {
     val status by viewModel.playerStatus.collectAsState()
 
     val title = if (currentPathStack.isEmpty()) {
-                "Musikordner"
+                stringResource(R.string.music_places)
             } else {
                 if (showPlaylist)
-                    "Wiedergabeliste"
+                    stringResource(R.string.current_playlist)
                 else
                     currentPathStack.last().name
             }
@@ -66,7 +69,9 @@ fun AudioPlayerApp() {
             PlayerBar(viewModel)
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        Column(modifier = Modifier
+            .padding(innerPadding)
+            .fillMaxSize()) {
 
             TopAppBar(
                 title = {
@@ -78,21 +83,30 @@ fun AudioPlayerApp() {
                 },
                 navigationIcon = {
                     if (currentPathStack.isNotEmpty()) {
-                        IconButton(onClick = {
-                            viewModel.navigateBack()
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück")
+                        if (showPlaylist.not()) {
+                            IconButton(onClick = {
+                                viewModel.navigateBack()
+                            }) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = stringResource(
+                                        R.string.back
+                                    )
+                                )
+                            }
                         }
                     }
                 },
                 actions = {
                     if (currentPathStack.isEmpty()) {
                         IconButton(onClick = { folderPickerLauncher.launch(null) }) {
-                            Icon(Icons.Default.Add, contentDescription = "Ordner hinzufügen")
+                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_place))
                         }
                     }
                     IconButton(onClick = { showPlaylist = !showPlaylist }) {
-                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Wiedergabeliste")
+                        Icon(
+                            if (!showPlaylist) Icons.AutoMirrored.Filled.List else Icons.Default.Close,
+                            contentDescription = stringResource(R.string.current_playlist))
                     }
                 }
             )

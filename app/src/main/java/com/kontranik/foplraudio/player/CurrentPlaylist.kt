@@ -33,11 +33,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
+import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.PlayerStatus
 
 @Composable
@@ -65,7 +68,7 @@ fun CurrentPlaylist(
                     .padding(32.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Die Liste ist leer")
+                Text(stringResource(R.string.playlist_is_empty))
             }
         } else {
             LazyColumn(
@@ -88,7 +91,7 @@ fun CurrentPlaylist(
                         if (isCurrent) {
                             Icon(
                                 Icons.Default.PlayArrow,
-                                contentDescription = "Playing",
+                                contentDescription = stringResource( R.string.playing),
                                 modifier = Modifier.size(16.dp),
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -102,14 +105,14 @@ fun CurrentPlaylist(
                         if (bitmap != null) {
                             Image(
                                 bitmap = bitmap,
-                                contentDescription = "Cover Art",
+                                contentDescription = stringResource(R.string.cover_art),
                                 modifier = artworkModifier,
                                 contentScale = ContentScale.Crop
                             )
                         } else {
                             Icon(
                                 Icons.Default.MusicNote,
-                                contentDescription = "Medienart",
+                                contentDescription = stringResource(R.string.music_note),
                                 modifier = artworkModifier.padding(8.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -134,7 +137,7 @@ fun CurrentPlaylist(
                         IconButton(onClick = { onRemoveItem(index) }) {
                             Icon(
                                 Icons.Default.Close,
-                                contentDescription = "Entfernen",
+                                contentDescription = stringResource(R.string.remove),
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }

@@ -15,13 +15,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -35,8 +34,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.FileItem
 
 @Composable
@@ -56,24 +57,44 @@ fun FileBrowserScreen(
             ) {
                 Icon(Icons.Default.PlayArrow, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Alles abspielen (Rekursiv)")
+                Text(stringResource(R.string.play_all_recursive))
             }
         }
 
         LazyColumn(modifier = Modifier.weight(1f)) {
             items(files) { file ->
                 var expanded by remember { mutableStateOf(false) }
-                val artwork = rememberArtwork(file)
+                val metadata = rememberMetadata(file)
 
                 ListItem(
                     headlineContent = {
-                        Text(file.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                metadata.value?.title ?: file.name,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            metadata.value?.artist?.let { artist ->
+                                Text(
+                                    artist,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            Text(
+                                file.name,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
                     },
                     leadingContent = {
-                        artwork.value?.let {
+                        metadata.value?.bitmap?.let {
                             Image(
                                 bitmap = it,
-                                contentDescription = "Cover Art",
+                                contentDescription = stringResource(R.string.cover_art),
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(RoundedCornerShape(4.dp)),
@@ -92,14 +113,16 @@ fun FileBrowserScreen(
                         if (file.isDirectory) {
                             Box {
                                 IconButton(onClick = { expanded = true }) {
-                                    Icon(Icons.Default.MoreVert, contentDescription = "Optionen")
+                                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(
+                                        R.string.options
+                                    ))
                                 }
                                 DropdownMenu(
                                     expanded = expanded,
                                     onDismissRequest = { expanded = false }
                                 ) {
                                     DropdownMenuItem(
-                                        text = { Text("Inhalt abspielen") },
+                                        text = { Text(stringResource(R.string.play_folder)) },
                                         onClick = {
                                             expanded = false
                                             onContextPlayFolder(file.uri)
@@ -110,7 +133,7 @@ fun FileBrowserScreen(
                         }
                     }
                 )
-                Divider(color = Color.LightGray.copy(alpha = 0.5f))
+                HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
             }
         }
     }

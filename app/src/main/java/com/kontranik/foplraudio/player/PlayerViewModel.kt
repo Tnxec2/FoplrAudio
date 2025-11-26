@@ -8,21 +8,29 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
+import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.session.*
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
+import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.data.StorageManager
 import com.kontranik.foplraudio.model.FileItem
 import com.kontranik.foplraudio.model.FolderBookmark
@@ -33,9 +41,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.core.net.toUri
-import androidx.media3.common.MediaMetadata
-import androidx.media3.common.util.Log
 
 
 @RequiresApi(Build.VERSION_CODES.P)
@@ -245,7 +250,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     fun addFolder(uri: Uri) {
         storageManager.persistUriPermission(uri)
         val docFile = DocumentFile.fromTreeUri(context, uri)
-        val name = docFile?.name ?: uri.lastPathSegment ?: "Unbekannter Ordner"
+        val name = docFile?.name ?: uri.lastPathSegment ?: context.getString(R.string.unknown_folder)
 
         val newList = _folders.value.toMutableList().apply {
             add(FolderBookmark(uri.toString(), name))
@@ -270,10 +275,10 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
             val docFile = DocumentFile.fromTreeUri(context, folderUri)
             if (docFile != null && docFile.isDirectory) {
                 val files = docFile.listFiles()
-                    .filter { it.name?.startsWith(".")?.not() == true && (it.isDirectory  || isAudioFile(it.name ?: "")) }
+                    .filter { it.name?.startsWith(".")?.not() == true && (it.isDirectory  || isAudioFile(it.name ?: "", it.uri.toString())) }
                     .map {
                         FileItem(
-                            name = it.name ?: "Unbekannt",
+                            name = it.name ?: context.getString(R.string.unknown),
                             uri = it.uri,
                             isDirectory = it.isDirectory,
                             parentUri = folderUri
@@ -334,7 +339,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     fun playFolderContents(folderUri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             val docFile = DocumentFile.fromTreeUri(context, folderUri)
-            val files = docFile?.listFiles()?.filter { isAudioFile(it.name ?: "") } ?: emptyList()
+            val files = docFile?.listFiles()?.filter { isAudioFile(it.name ?: "", it.uri.toString()) } ?: emptyList()
             loadMediaItems(files)
         }
     }
@@ -352,7 +357,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
             MediaItem.Builder()
                 .setUri(file.uri)
                 .setMediaId(file.uri.toString())
-                .setMediaMetadata(getMetadata(file.uri, file.name ?: "Unbekannt"))
+                .setMediaMetadata(getMetadata(file.uri, file.name ?: context.getString(R.string.unknown)))
                 .build()
         }
 
@@ -362,7 +367,8 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
                 mediaController?.prepare()
                 mediaController?.play()
             } else {
-                Toast.makeText(context, "Keine Audiodateien gefunden", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context,
+                    context.getString(R.string.no_audio_files_found), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -397,7 +403,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
             if (file.isDirectory) {
                 audioFiles.addAll(getAllAudioFilesRecursive(file))
             } else {
-                if (isAudioFile(file.name ?: "")) {
+                if (isAudioFile(file.name ?: "", file.uri.toString())) {
                     audioFiles.add(file)
                 }
             }
@@ -443,9 +449,15 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     }
 
     // --- Helpers ---
-    private fun isAudioFile(name: String): Boolean {
+    private fun isAudioFile(name: String, path: String): Boolean {
         val lower = name.lowercase()
-        return lower.endsWith(".mp3") || lower.endsWith(".wav") || lower.endsWith(".ogg") || lower.endsWith(".m4a") || lower.endsWith(".flac")
+        val mime = getMimeType(path)
+        return mime?.startsWith("audio/") == true || lower.endsWith(".mp3") || lower.endsWith(".wav") || lower.endsWith(".ogg") || lower.endsWith(".m4a") || lower.endsWith(".flac")
+    }
+
+    private fun getMimeType(fileUrl: String?): String? {
+        val extension = MimeTypeMap.getFileExtensionFromUrl(fileUrl)
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
     }
 
     private fun restoreLastState() {
@@ -460,7 +472,6 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
                 repeatMode = it.repeatMode,
                 pauseAtEndOfMediaItems = it.pauseAtEndOfMediaItems
             )
-            Log.d("PlayerViewModel", "Restoring player state: $it")
             directExoPlayer.value?.shuffleModeEnabled = it.shuffleMode
             directExoPlayer.value?.repeatMode = it.repeatMode
             directExoPlayer.value?.pauseAtEndOfMediaItems = it.pauseAtEndOfMediaItems
