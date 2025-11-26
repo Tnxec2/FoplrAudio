@@ -10,6 +10,8 @@ import com.kontranik.foplraudio.model.FolderBookmark
 import androidx.core.net.toUri
 import androidx.core.content.edit
 import androidx.documentfile.provider.DocumentFile
+import androidx.media3.common.Player
+import com.kontranik.foplraudio.model.PlayerStatus
 
 class StorageManager(private val context: Context) {
     private val prefs = context.getSharedPreferences("audio_player_prefs", Context.MODE_PRIVATE)
@@ -20,6 +22,9 @@ class StorageManager(private val context: Context) {
         const val last_folder_uri = "last_folder_uri"
         const val last_folder_name = "last_folder_name"
         const val last_played_uri = "last_played_uri"
+        const val pauseAtEndOfMediaItemsKey = "pauseAtEndOfMediaItems"
+        const val shuffleModeKey = "shuffleMode"
+        const val repeatModeKey = "repeatMode"
     }
 
     fun saveFolders(folders: List<FolderBookmark>) {
@@ -84,10 +89,7 @@ class StorageManager(private val context: Context) {
             try {
                 val uri = lastFolderUriStr.toUri()
                 Log.d("StorageManager", "Loading last opened folder: $uri, $lastFolderName")
-//                val hasPermission = context.contentResolver.persistedUriPermissions.any { it.uri == uri }
-//                if (hasPermission) {
-//                    return Pair(uri, lastFolderName!!)
-//                }
+
                 val document = DocumentFile.fromTreeUri(context, uri)
                 if (document?.canRead() == true) {
                     return Pair(uri, lastFolderName!!)
@@ -104,5 +106,34 @@ class StorageManager(private val context: Context) {
             }
         }
         return null
+    }
+
+    fun loadPlayerStatus(): PlayerStatus {
+        return PlayerStatus(
+            pauseAtEndOfMediaItems = prefs.getBoolean(pauseAtEndOfMediaItemsKey, false),
+            shuffleMode = prefs.getBoolean(shuffleModeKey, false),
+            repeatMode = prefs.getInt(repeatModeKey, Player.REPEAT_MODE_OFF)
+        )
+    }
+
+    fun saveRepeatMode(repeatMode: Int) {
+        prefs.edit {
+            putInt(repeatModeKey, repeatMode)
+            apply()
+        }
+    }
+
+    fun saveShuffleMode(shuffleMode: Boolean) {
+        prefs.edit {
+            putBoolean(shuffleModeKey, shuffleMode)
+            apply()
+        }
+    }
+
+    fun savePauseAtEndOfMediaItems(pauseAtEndOfMediaItems: Boolean) {
+        prefs.edit {
+            putBoolean(pauseAtEndOfMediaItemsKey, pauseAtEndOfMediaItems)
+            apply()
+        }
     }
 }

@@ -1,16 +1,13 @@
 package com.kontranik.foplraudio.player
 
 import android.content.ComponentName
-import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
-import android.os.Bundle
 import android.os.IBinder
-import android.provider.MediaStore
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.material.icons.Icons
@@ -39,8 +36,6 @@ import kotlinx.coroutines.withContext
 import androidx.core.net.toUri
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.Log
-import com.kontranik.foplraudio.model.AudioTrack
-import java.io.File
 
 
 @RequiresApi(Build.VERSION_CODES.P)
@@ -146,13 +141,6 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             updateCurrentTrackInfo(mediaController?.currentMediaItem)
             updatePlaylistState()
-
-            // Lokale Logik für "Stop nach Titel"
-            if (_playerStatus.value.stopAfterCurrent && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
-                mediaController?.pause()
-                // Setze den lokalen Status zurück, nachdem die Aktion ausgeführt wurde
-                _playerStatus.value = _playerStatus.value.copy(stopAfterCurrent = false)
-            }
         }
 
         override fun onTimelineChanged(timeline: Timeline, reason: Int) {
@@ -169,10 +157,12 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
         override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
             _playerStatus.value = _playerStatus.value.copy(shuffleMode = shuffleModeEnabled)
+            storageManager.saveShuffleMode(shuffleModeEnabled)
         }
 
         override fun onRepeatModeChanged(repeatMode: Int) {
             _playerStatus.value = _playerStatus.value.copy(repeatMode = repeatMode)
+            storageManager.saveRepeatMode(repeatMode = repeatMode)
         }
     }
 
@@ -180,10 +170,14 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         mediaController?.let { controller ->
             _playerStatus.value = _playerStatus.value.copy(
                 isPlaying = controller.isPlaying,
-                shuffleMode = controller.shuffleModeEnabled,
-                repeatMode = controller.repeatMode,
+//                shuffleMode = controller.shuffleModeEnabled,
+//                repeatMode = controller.repeatMode,
                 duration = controller.duration.coerceAtLeast(0L)
             )
+            controller.shuffleModeEnabled = _playerStatus.value.shuffleMode
+            controller.repeatMode = _playerStatus.value.repeatMode
+            directExoPlayer.value?.pauseAtEndOfMediaItems = _playerStatus.value.pauseAtEndOfMediaItems
+
             updateCurrentTrackInfo(controller.currentMediaItem)
             updatePlaylistState()
         }
@@ -193,8 +187,6 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         val title = mediaItem?.mediaMetadata?.title?.toString() ?: ""
         val artist = mediaItem?.mediaMetadata?.artist?.toString() ?: ""
         val artworkBytes = mediaItem?.mediaMetadata?.artworkData
-
-        Log.d("PlayerViewModel", "Updating current track info: title=$title, artist=$artist, artworkBytes=${artworkBytes?.size}")
 
         _playerStatus.value = _playerStatus.value.copy(
             currentTrackTitle = title,
@@ -321,41 +313,10 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         val audioFiles = allFiles.filter { !it.isDirectory }
         viewModelScope.launch(Dispatchers.IO) {
             val mediaItems = audioFiles.map { fileItem ->
-                val metadataBuilder = MediaMetadata.Builder()
-                val retriever = MediaMetadataRetriever()
-                try {
-                    retriever.setDataSource(context, fileItem.uri)
-                    metadataBuilder.setTitle(
-                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-                            ?: fileItem.name
-                    )
-                    metadataBuilder.setArtist(
-                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
-                    )
-                    metadataBuilder.setAlbumTitle(
-                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
-                    )
-                    metadataBuilder.setAlbumArtist(
-                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
-                    )
-                    metadataBuilder.setArtworkUri(fileItem.uri)
-                    val artworkBytes = retriever.embeddedPicture
-                    artworkBytes?.let {
-                        metadataBuilder.setArtworkData(
-                            it,
-                            MediaMetadata.PICTURE_TYPE_FRONT_COVER
-                        )
-                    }
-                } catch (e: Exception) {
-                    Log.e("PlayerViewModel", "Error getting metadata for ${fileItem.uri}", e)
-                    metadataBuilder.setTitle(fileItem.name)
-                } finally {
-                    retriever.release()
-                }
                 MediaItem.Builder()
                     .setUri(fileItem.uri)
                     .setMediaId(fileItem.uri.toString())
-                    .setMediaMetadata(metadataBuilder.build())
+                    .setMediaMetadata(getMetadata(fileItem.uri, fileItem.name))
                     .build()
             }
 
@@ -388,33 +349,10 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
     private suspend fun loadMediaItems(files: List<DocumentFile>) {
         val mediaItems = files.map { file ->
-            val retriever = MediaMetadataRetriever()
-            val metadataBuilder = MediaMetadata.Builder()
-            try {
-                retriever.setDataSource(context, file.uri)
-                metadataBuilder.setTitle(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: file.name)
-                metadataBuilder.setArtist(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST))
-                metadataBuilder.setAlbumTitle(
-                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
-                )
-                metadataBuilder.setAlbumArtist(
-                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
-                )
-                metadataBuilder.setArtworkUri(file.uri)
-                val artworkBytes = retriever.embeddedPicture
-                artworkBytes?.let {
-                    metadataBuilder.setArtworkData(it, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-                }
-            } catch (e: Exception) {
-                Log.e("PlayerViewModel", "Error getting metadata for ${file.uri}", e)
-                metadataBuilder.setTitle(file.name)
-            } finally {
-                retriever.release()
-            }
             MediaItem.Builder()
                 .setUri(file.uri)
                 .setMediaId(file.uri.toString())
-                .setMediaMetadata(metadataBuilder.build())
+                .setMediaMetadata(getMetadata(file.uri, file.name ?: "Unbekannt"))
                 .build()
         }
 
@@ -427,6 +365,29 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
                 Toast.makeText(context, "Keine Audiodateien gefunden", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun getMetadata(uri: Uri, fallBackName: String) : MediaMetadata {
+        val retriever = MediaMetadataRetriever()
+        val metadataBuilder = MediaMetadata.Builder()
+        try {
+            retriever.setDataSource(context, uri)
+            metadataBuilder.setTitle(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE) ?: fallBackName)
+            metadataBuilder.setArtist(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST))
+            metadataBuilder.setAlbumTitle(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM))
+            metadataBuilder.setAlbumArtist(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST))
+            metadataBuilder.setArtworkUri(uri)
+            val artworkBytes = retriever.embeddedPicture
+            artworkBytes?.let {
+                metadataBuilder.setArtworkData(it, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+            }
+        } catch (e: Exception) {
+            Log.e("PlayerViewModel", "Error getting metadata for $uri", e)
+            metadataBuilder.setTitle(fallBackName)
+        } finally {
+            retriever.release()
+        }
+        return metadataBuilder.build()
     }
 
     private fun getAllAudioFilesRecursive(dir: DocumentFile): List<DocumentFile> {
@@ -444,53 +405,8 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         return audioFiles
     }
 
-    fun loadTracksForFolder(path: String): MutableList<AudioTrack> {
-        val trackList = mutableListOf<AudioTrack>()
-
-        val projection = arrayOf(
-            MediaStore.Audio.Media._ID, MediaStore.Audio.Media.TITLE, MediaStore.Audio.Media.ARTIST,
-            MediaStore.Audio.Media.DATA, MediaStore.Audio.Media.DURATION, MediaStore.Audio.Media.ALBUM,
-            MediaStore.Audio.Media.ALBUM_ARTIST
-        )
-        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DATA} LIKE ?"
-        val selectionArgs = arrayOf("${path}/%")
-
-        context.contentResolver.query(
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, projection, selection, selectionArgs, MediaStore.Audio.Media.TITLE
-        )?.use { cursor ->
-            val idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-            val titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-            val artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-            val albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
-            val albumArtistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ARTIST)
-
-            val pathCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
-            val durCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-
-            while (cursor.moveToNext()) {
-                val path = cursor.getString(pathCol)
-                if (File(path).parent == path) {
-                    val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, cursor.getLong(idCol))
-                    trackList.add(
-                        AudioTrack(
-                            id = cursor.getLong(idCol),
-                            title = cursor.getString(titleCol) ?: "Unbekannt",
-                            artist = cursor.getString(artistCol) ?: "Unbekannt",
-                            album = cursor.getString(albumCol) ?: "Unbekannt",
-                            albumArtist = cursor.getString(albumArtistCol) ?: "Unbekannt",
-                            path = path,
-                            duration = cursor.getLong(durCol),
-                            uri = uri,
-                        )
-                    )
-                }
-            }
-        }
-        return trackList
-    }
 
     // --- Player Controls (über Controller) ---
-    // HINWEIS: Diese Methoden verwenden weiterhin den MediaController.
 
     fun togglePlayPause() {
         mediaController?.let {
@@ -515,10 +431,15 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun toggleStopAfterCurrent() {
-        _playerStatus.value = _playerStatus.value.copy(
-            stopAfterCurrent = !_playerStatus.value.stopAfterCurrent
-        )
+    fun togglePauseAtEndOfMediaItems() {
+        directExoPlayer.value?.let {
+            val pauseAtEndOfMediaItems = it.pauseAtEndOfMediaItems.not()
+            it.pauseAtEndOfMediaItems = pauseAtEndOfMediaItems
+            _playerStatus.value = _playerStatus.value.copy(
+                pauseAtEndOfMediaItems = pauseAtEndOfMediaItems
+            )
+            storageManager.savePauseAtEndOfMediaItems(pauseAtEndOfMediaItems)
+        }
     }
 
     // --- Helpers ---
@@ -531,6 +452,18 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         val lastState = storageManager.getLastOpenedFolder()
         lastState?.let { (uri, name) ->
             openFolder(uri, name)
+        }
+        val lastPlayerState = storageManager.loadPlayerStatus()
+        lastPlayerState.let {
+            _playerStatus.value = _playerStatus.value.copy(
+                shuffleMode = it.shuffleMode,
+                repeatMode = it.repeatMode,
+                pauseAtEndOfMediaItems = it.pauseAtEndOfMediaItems
+            )
+            Log.d("PlayerViewModel", "Restoring player state: $it")
+            directExoPlayer.value?.shuffleModeEnabled = it.shuffleMode
+            directExoPlayer.value?.repeatMode = it.repeatMode
+            directExoPlayer.value?.pauseAtEndOfMediaItems = it.pauseAtEndOfMediaItems
         }
     }
 

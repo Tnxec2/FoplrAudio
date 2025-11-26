@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,6 +24,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,26 +44,43 @@ fun AudioPlayerApp() {
     val currentPathStack by viewModel.currentPathStack.collectAsState()
     val currentFiles by viewModel.currentFiles.collectAsState()
 
-    val folderPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-        uri?.let { viewModel.addFolder(it) }
-    }
+    val folderPickerLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            uri?.let { viewModel.addFolder(it) }
+        }
+
+    var showPlaylist by remember { mutableStateOf(false) }
+    val status by viewModel.playerStatus.collectAsState()
+
+    val title = if (currentPathStack.isEmpty()) {
+                "Musikordner"
+            } else {
+                if (showPlaylist)
+                    "Wiedergabeliste"
+                else
+                    currentPathStack.last().name
+            }
 
     Scaffold(
-        bottomBar = { PlayerBar(viewModel) }
+        bottomBar = {
+            PlayerBar(viewModel)
+        }
     ) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
 
             TopAppBar(
                 title = {
                     Text(
-                        text = if (currentPathStack.isEmpty()) "Musikordner" else currentPathStack.last().name,
+                        text = title,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 },
                 navigationIcon = {
                     if (currentPathStack.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.navigateBack() }) {
+                        IconButton(onClick = {
+                            viewModel.navigateBack()
+                        }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Zurück")
                         }
                     }
@@ -69,10 +91,19 @@ fun AudioPlayerApp() {
                             Icon(Icons.Default.Add, contentDescription = "Ordner hinzufügen")
                         }
                     }
+                    IconButton(onClick = { showPlaylist = !showPlaylist }) {
+                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Wiedergabeliste")
+                    }
                 }
             )
 
-            if (currentPathStack.isEmpty()) {
+            if (showPlaylist) {
+                CurrentPlaylist(
+                    status = status,
+                    onPlayItem = { viewModel.playQueueItem(it) },
+                    onRemoveItem = { viewModel.removeQueueItem(it) }
+                )
+            } else if (currentPathStack.isEmpty()) {
                 FolderListScreen(
                     folders = folders,
                     onFolderClick = { uriStr, name ->

@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -25,7 +24,6 @@ import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -33,12 +31,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -49,7 +46,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.Player
 import com.kontranik.foplraudio.model.PlayerStatus
 import com.kontranik.foplraudio.player.helpers.formatDuration
@@ -75,10 +71,8 @@ fun PlayerBar(
     PlayerBarContent(
         status,
         imageBitmap,
-        playQueueItem = { viewModel.playQueueItem(it) },
-        removeQueueItem = { viewModel.removeQueueItem(it) },
         seekTo = { viewModel.seekTo(it) },
-        toggleStopAfterCurrent = { viewModel.toggleStopAfterCurrent() },
+        togglePauseAtEndOfMediaItems = { viewModel.togglePauseAtEndOfMediaItems() },
         skipPrev = { viewModel.skipPrev() },
         skipNext = { viewModel.skipNext() },
         togglePlayPause = { viewModel.togglePlayPause() },
@@ -93,27 +87,15 @@ private fun PlayerBarContent(
     status: PlayerStatus,
     imageBitmap: ImageBitmap?,
     fallBackIcon: ImageVector,
-    playQueueItem: (index: Int) -> Unit,
-    removeQueueItem: (index: Int) -> Unit,
     seekTo: (Long) -> Unit,
-    toggleStopAfterCurrent: () -> Unit,
+    togglePauseAtEndOfMediaItems: () -> Unit,
     skipPrev: () -> Unit,
     skipNext: () -> Unit,
     toggleShuffle: () -> Unit,
     toggleRepeat: () -> Unit,
     togglePlayPause: () -> Unit,
 
-) {
-    var showPlaylistDialog by remember { mutableStateOf(false) }
-
-    if (showPlaylistDialog) {
-        PlaylistDialog(
-            status = status,
-            onDismiss = { showPlaylistDialog = false },
-            onPlayItem = { index -> playQueueItem(index) },
-            onRemoveItem = { index -> removeQueueItem(index) }
-        )
-    }
+    ) {
 
     Column(
         modifier = Modifier
@@ -186,17 +168,6 @@ private fun PlayerBarContent(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { showPlaylistDialog = true }) {
-                Icon(Icons.Default.List, contentDescription = "Wiedergabeliste")
-            }
-
-            IconButton(onClick = { toggleStopAfterCurrent() }) {
-                Icon(
-                    Icons.Default.PlayDisabled,
-                    contentDescription = "Stop nach Titel",
-                    tint = if (status.stopAfterCurrent) MaterialTheme.colorScheme.error else LocalContentColor.current
-                )
-            }
 
             IconButton(onClick = { skipPrev() }) {
                 Icon(Icons.Default.SkipPrevious, contentDescription = "Zurück")
@@ -217,6 +188,16 @@ private fun PlayerBarContent(
 
             IconButton(onClick = { skipNext() }) {
                 Icon(Icons.Default.SkipNext, contentDescription = "Weiter")
+            }
+
+            VerticalDivider(Modifier.height(14.dp))
+
+            IconButton(onClick = { togglePauseAtEndOfMediaItems() }) {
+                Icon(
+                    Icons.Default.PlayDisabled,
+                    contentDescription = "Pause nach Titel",
+                    tint = if (status.pauseAtEndOfMediaItems) MaterialTheme.colorScheme.error else LocalContentColor.current
+                )
             }
 
             IconButton(onClick = { toggleShuffle() }) {
@@ -259,15 +240,13 @@ private fun PlayerBarContentPreview() {
                 repeatMode = Player.REPEAT_MODE_OFF,
                 playlist = emptyList(),
                 currentIndex = 0,
-                stopAfterCurrent = false
+                pauseAtEndOfMediaItems = false
 
             ),
             imageBitmap = null,
             fallBackIcon = Icons.Default.MusicNote,
-            playQueueItem = {},
-            removeQueueItem = {},
             seekTo = {},
-            toggleStopAfterCurrent = {},
+            togglePauseAtEndOfMediaItems = {},
             skipPrev = {},
             skipNext = {},
             toggleShuffle = {},
