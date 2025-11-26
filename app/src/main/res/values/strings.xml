@@ -12,6 +12,7 @@
     <string name="play_all_recursive">Play all (recursive)</string>
     <string name="options">Options</string>
     <string name="play_folder">Play Folder</string>
+    <string name="add_folder_to_playlist">Add Folder to Playlist</string>
     <string name="press_to_add_a_music_folder">Press + to add a music folder</string>
     <string name="repeat">Repeat</string>
     <string name="shuffle">Shuffle</string>

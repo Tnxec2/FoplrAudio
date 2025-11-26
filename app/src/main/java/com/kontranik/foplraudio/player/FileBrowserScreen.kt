@@ -14,9 +14,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -45,6 +48,7 @@ fun FileBrowserScreen(
     files: List<FileItem>,
     onFileClick: (FileItem) -> Unit,
     onContextPlayFolder: (Uri) -> Unit,
+    onContextAddToPlayFolder: (Uri) -> Unit,
     onPlayAllRecursive: () -> Unit
 ) {
     Column {
@@ -74,20 +78,24 @@ fun FileBrowserScreen(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
-                            metadata.value?.artist?.let { artist ->
-                                Text(
-                                    artist,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                            if (!file.isDirectory) {
+                                metadata.value?.artist?.let { artist ->
+                                    Text(
+                                        artist,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                                if (file.name != (metadata.value?.title ?: file.name)) {
+                                    Text(
+                                        file.name,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
                             }
-                            Text(
-                                file.name,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.labelSmall
-                            )
                         }
                     },
                     leadingContent = {
@@ -100,7 +108,12 @@ fun FileBrowserScreen(
                                     .clip(RoundedCornerShape(4.dp)),
                                 contentScale = androidx.compose.ui.layout.ContentScale.Crop
                             )
-                        } ?: Icon(Icons.Default.AudioFile, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                        } ?:
+                            if (file.isDirectory)
+                                Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                            else
+                                Icon(Icons.Default.AudioFile, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+
                     },
                     modifier = Modifier.clickable {
                         if (file.isDirectory) {
@@ -122,10 +135,19 @@ fun FileBrowserScreen(
                                     onDismissRequest = { expanded = false }
                                 ) {
                                     DropdownMenuItem(
+                                        leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
                                         text = { Text(stringResource(R.string.play_folder)) },
                                         onClick = {
                                             expanded = false
                                             onContextPlayFolder(file.uri)
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null) },
+                                        text = { Text(stringResource(R.string.add_folder_to_playlist)) },
+                                        onClick = {
+                                            expanded = false
+                                            onContextAddToPlayFolder(file.uri)
                                         }
                                     )
                                 }

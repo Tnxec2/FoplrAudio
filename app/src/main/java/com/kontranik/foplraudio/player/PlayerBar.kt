@@ -156,12 +156,14 @@ private fun PlayerBarContent(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
-                Text(
-                    text = status.currentTrackArtist ?: "",
-                    maxLines = 1,
-                    overflow = TextOverflow.Clip,
-                    style = MaterialTheme.typography.labelSmall
-                )
+                if (status.currentTrackArtist != null) {
+                    Text(
+                        text = status.currentTrackArtist,
+                        maxLines = 1,
+                        overflow = TextOverflow.Clip,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
         }
 

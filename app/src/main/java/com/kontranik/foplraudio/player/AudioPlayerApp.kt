@@ -138,7 +138,10 @@ fun AudioPlayerApp() {
                         }
                     },
                     onContextPlayFolder = { folderUri ->
-                        viewModel.playFolderContents(folderUri)
+                        viewModel.playFolderRecursive(folderUri)
+                    },
+                    onContextAddToPlayFolder = { folderUri ->
+                        viewModel.addFolderRecursive(folderUri)
                     },
                     onPlayAllRecursive = {
                         val currentFolder = currentPathStack.lastOrNull()

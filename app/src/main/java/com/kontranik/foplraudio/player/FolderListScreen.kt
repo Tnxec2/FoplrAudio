@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderDelete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
@@ -56,6 +58,7 @@ fun FolderListScreen(
                                 onDismissRequest = { expanded = false }
                             ) {
                                 DropdownMenuItem(
+                                    leadingIcon = { Icon(Icons.Filled.FolderDelete, contentDescription = stringResource(R.string.remove)) },
                                     text = { Text(stringResource(R.string.remove)) },
                                     onClick = {
                                         expanded = false

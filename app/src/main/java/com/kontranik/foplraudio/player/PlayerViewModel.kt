@@ -336,23 +336,23 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun playFolderContents(folderUri: Uri) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val docFile = DocumentFile.fromTreeUri(context, folderUri)
-            val files = docFile?.listFiles()?.filter { isAudioFile(it.name ?: "", it.uri.toString()) } ?: emptyList()
-            loadMediaItems(files)
-        }
+    fun playFolderRecursive(folderUri: Uri) {
+        playFolderRecursive(folderUri, true)
     }
 
-    fun playFolderRecursive(folderUri: Uri) {
+    fun addFolderRecursive(folderUri: Uri) {
+        playFolderRecursive(folderUri, false)
+    }
+
+    private fun playFolderRecursive(folderUri: Uri, replace: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             val docFile = DocumentFile.fromTreeUri(context, folderUri)
             val files = if (docFile != null) getAllAudioFilesRecursive(docFile) else emptyList()
-            loadMediaItems(files)
+            loadMediaItems(files, replace)
         }
     }
 
-    private suspend fun loadMediaItems(files: List<DocumentFile>) {
+    private suspend fun loadMediaItems(files: List<DocumentFile>, replace: Boolean = false) {
         val mediaItems = files.map { file ->
             MediaItem.Builder()
                 .setUri(file.uri)
@@ -363,7 +363,8 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
         withContext(Dispatchers.Main) {
             if (mediaItems.isNotEmpty()) {
-                mediaController?.setMediaItems(mediaItems, 0, 0L)
+                if (replace) mediaController?.setMediaItems(mediaItems, 0, 0L)
+                else  mediaController?.addMediaItems(mediaItems)
                 mediaController?.prepare()
                 mediaController?.play()
             } else {
@@ -400,7 +401,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         val audioFiles = mutableListOf<DocumentFile>()
         val files = dir.listFiles()
         for (file in files) {
-            if (file.isDirectory) {
+            if (file.isDirectory && file.name?.startsWith(".") != true) {
                 audioFiles.addAll(getAllAudioFilesRecursive(file))
             } else {
                 if (isAudioFile(file.name ?: "", file.uri.toString())) {
