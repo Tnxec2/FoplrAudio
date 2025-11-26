@@ -1,5 +1,6 @@
 package com.kontranik.foplraudio.player
 
+import android.app.PendingIntent
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
@@ -7,6 +8,8 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import kotlin.jvm.java
+
 
 // --- Playback Service (Verwaltet ExoPlayer im Hintergrund) ---
 /**
@@ -35,7 +38,9 @@ class PlaybackService : MediaSessionService() {
         player = ExoPlayer.Builder(this).build()
 
         // 2. MediaSession erstellen und mit dem Player verbinden
-        mediaSession = MediaSession.Builder(this, player).build()
+        mediaSession = MediaSession.Builder(this, player)
+            .setSessionActivity(getSingleTopActivity())
+            .build()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession = mediaSession
@@ -64,5 +69,14 @@ class PlaybackService : MediaSessionService() {
             release()
         }
         super.onDestroy()
+    }
+
+    private fun getSingleTopActivity(): PendingIntent {
+        return PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, com.kontranik.foplraudio.MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE
+        )
     }
 }
