@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -129,9 +130,12 @@ private fun PlayerBarContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             val artworkModifier = Modifier
-                .size(48.dp)
+                .size(68.dp)
                 .padding(end = 8.dp)
-                .background(Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                .background(
+                    Color.Gray.copy(alpha = 0.2f),
+                    RoundedCornerShape(8.dp)
+                )
 
             if (imageBitmap != null) {
                 Image(
@@ -148,27 +152,33 @@ private fun PlayerBarContent(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Column(Modifier.weight(1f)) {
+            Column(
+                Modifier.weight(1f)
+            ) {
                 Text(
                     text = status.currentTrackTitle.ifEmpty { stringResource(R.string.no_title) },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
                 )
                 if (status.currentTrackArtist != null) {
                     Text(
                         text = status.currentTrackArtist,
                         maxLines = 1,
                         overflow = TextOverflow.Clip,
-                        style = MaterialTheme.typography.labelSmall
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier
+                            .fillMaxWidth()
                     )
                 }
             }
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -194,7 +204,7 @@ private fun PlayerBarContent(
                 Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.next))
             }
 
-            VerticalDivider(Modifier.height(14.dp))
+            VerticalDivider(Modifier.height(18.dp))
 
             IconButton(onClick = { togglePauseAtEndOfMediaItems() }) {
                 Icon(
