@@ -49,40 +49,31 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
     private val storageManager = StorageManager(context)
 
-    // MediaController für MediaSession-Steuerung (empfohlene Methode)
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
 
-    // Direkter Zugriff auf den ExoPlayer (über Binder)
     private val _directExoPlayer = MutableStateFlow<ExoPlayer?>(null)
-    val directExoPlayer = _directExoPlayer.asStateFlow() // Kann nun von anderen Komponenten abonniert werden
+    val directExoPlayer = _directExoPlayer.asStateFlow()
 
     private val _isInitializing = MutableStateFlow(true)
     val isInitializing = _isInitializing.asStateFlow()
 
-    // DER KONSOLIDIERTE PLAYER-STATUS
     private val _playerStatus = MutableStateFlow(PlayerStatus())
     val playerStatus = _playerStatus.asStateFlow()
 
-    // Status des Ordnerbrowsers
     private val _mediaPlaces = MutableStateFlow<List<MediaPlace>>(emptyList())
     val mediaPlaces = _mediaPlaces.asStateFlow()
 
-    // Liste der Dateien im Ordner
     private val _currentFiles = MutableStateFlow<List<FileItem>>(emptyList())
     val currentFiles = _currentFiles.asStateFlow()
 
-    // Liste des Ordners im Ordnerbrowser
     private val _currentPathStack = MutableStateFlow<List<FileItem>>(emptyList())
     val currentPathStack = _currentPathStack.asStateFlow()
 
-    // Service Connection für den lokalen Binder
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val binder = service as PlaybackService.LocalBinder
             _directExoPlayer.value = binder.getPlayer()
-            // Hier könnten Sie spezifische ExoPlayer-Methoden aufrufen,
-            // die NICHT in MediaController verfügbar sind.
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -99,7 +90,6 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
         viewModelScope.launch {
             while (true) {
-                // Position nur aktualisieren, wenn ein Controller verbunden ist und spielt
                 mediaController?.let { controller ->
                     if (controller.isPlaying) {
                         _playerStatus.value = _playerStatus.value.copy(
@@ -111,13 +101,8 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
                 delay(500)
             }
         }
-
-        _isInitializing.value = false
     }
 
-    /**
-     * Stellt die Verbindung zum PlaybackService her und initialisiert den MediaController.
-     */
     @RequiresApi(Build.VERSION_CODES.P)
     private fun connectToMediaController() {
         val sessionToken = SessionToken(
@@ -129,14 +114,11 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         controllerFuture?.addListener({
             mediaController = controllerFuture?.get()
             mediaController?.addListener(controllerListener)
-            // Initialen Status beim Verbinden abrufen
             initControllerState()
+            _isInitializing.value = false
         }, context.mainExecutor)
     }
 
-    /**
-     * Bindet den Service, um direkten Zugriff auf den ExoPlayer über den LocalBinder zu erhalten.
-     */
     private fun bindToExoPlayerService() {
         val intent = Intent(context, PlaybackService::class.java).apply {
             action = PlaybackService.ACTION_BIND_EXOPLAYER
@@ -183,8 +165,6 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
             _playerStatus.value = _playerStatus.value.copy(
                 isPlaying = controller.isPlaying,
-//                shuffleMode = controller.shuffleModeEnabled,
-//                repeatMode = controller.repeatMode,
                 duration = controller.duration.coerceAtLeast(0L)
             )
             controller.shuffleModeEnabled = _playerStatus.value.shuffleMode
@@ -335,10 +315,8 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
             val newStack = stack.dropLast(1)
             _currentPathStack.value = newStack
             if (newStack.isNotEmpty()) {
-                openFolder(newStack.last().uri, newStack.last().name)
-                _currentPathStack.value = newStack
-            } else {
-                _currentFiles.value = emptyList()
+                val previousFolder = newStack.last()
+                openFolder(previousFolder.uri, previousFolder.name)
             }
         }
     }
@@ -413,12 +391,10 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
             metadataBuilder.setAlbumTitle(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM))
             metadataBuilder.setAlbumArtist(retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST))
             metadataBuilder.setArtworkUri(uri)
-            val artworkBytes = retriever.embeddedPicture
-            artworkBytes?.let {
+            retriever.embeddedPicture?.let {
                 metadataBuilder.setArtworkData(it, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
             }
-        } catch (e: Exception) {
-            Log.e("PlayerViewModel", "Error getting metadata for $uri", e)
+        } catch (_: Exception) {
             metadataBuilder.setTitle(fallBackName)
         } finally {
             retriever.release()
@@ -428,8 +404,8 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
     private fun getAllAudioFilesRecursive(dir: DocumentFile): List<DocumentFile> {
         val audioFiles = mutableListOf<DocumentFile>()
-        val files = dir.listFiles()
-        for (file in files) {
+
+        dir.listFiles().forEach { file ->
             if (file.isDirectory && file.name?.startsWith(".") != true) {
                 audioFiles.addAll(getAllAudioFilesRecursive(file))
             } else {
@@ -512,13 +488,9 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     }
 
     override fun onCleared() {
-        // Trenne die Verbindung zum Controller
         mediaController?.removeListener(controllerListener)
         controllerFuture?.let { MediaController.releaseFuture(it) }
-
-        // Unbind des Services
         context.unbindService(serviceConnection)
-
         super.onCleared()
     }
 }
