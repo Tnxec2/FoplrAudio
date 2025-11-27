@@ -464,10 +464,6 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     }
 
     private fun restoreLastState() {
-//        val lastState = storageManager.getLastOpenedFolder()
-//        lastState?.let { (uri, name) ->
-//            openFolder(uri, name)
-//        }
         val lastPathStack = storageManager.loadLastPathStack()
         _currentPathStack.value = lastPathStack
         if (lastPathStack.isNotEmpty()) {
