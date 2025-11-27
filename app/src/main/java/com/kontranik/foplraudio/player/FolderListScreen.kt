@@ -6,13 +6,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderDelete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -27,13 +27,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.kontranik.foplraudio.R
-import com.kontranik.foplraudio.model.FolderBookmark
+import com.kontranik.foplraudio.model.MediaPlace
 
 @Composable
 fun FolderListScreen(
-    folders: List<FolderBookmark>,
+    folders: List<MediaPlace>,
     onFolderClick: (String, String) -> Unit,
-    onRemoveFolder: (FolderBookmark) -> Unit
+    onRemoveFolder: (MediaPlace) -> Unit
 ) {
     if (folders.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -69,7 +69,7 @@ fun FolderListScreen(
                         }
                     }
                 )
-                Divider()
+                HorizontalDivider()
             }
         }
     }

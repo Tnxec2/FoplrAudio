@@ -41,7 +41,7 @@ fun AudioPlayerApp() {
     val context = LocalContext.current
     val viewModel: PlayerViewModel = viewModel(factory = PlayerViewModelFactory(context))
 
-    val folders by viewModel.folders.collectAsState()
+    val folders by viewModel.mediaPlaces.collectAsState()
     val currentPathStack by viewModel.currentPathStack.collectAsState()
     val currentFiles by viewModel.currentFiles.collectAsState()
 

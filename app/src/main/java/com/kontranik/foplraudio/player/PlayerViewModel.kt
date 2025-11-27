@@ -33,7 +33,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.data.StorageManager
 import com.kontranik.foplraudio.model.FileItem
-import com.kontranik.foplraudio.model.FolderBookmark
+import com.kontranik.foplraudio.model.MediaPlace
 import com.kontranik.foplraudio.model.PlayerStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -62,8 +62,8 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     val playerStatus = _playerStatus.asStateFlow()
 
     // Status des Ordnerbrowsers
-    private val _folders = MutableStateFlow<List<FolderBookmark>>(emptyList())
-    val folders = _folders.asStateFlow()
+    private val _mediaPlaces = MutableStateFlow<List<MediaPlace>>(emptyList())
+    val mediaPlaces = _mediaPlaces.asStateFlow()
 
     private val _currentFiles = MutableStateFlow<List<FileItem>>(emptyList())
     val currentFiles = _currentFiles.asStateFlow()
@@ -86,7 +86,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     }
 
     init {
-        _folders.value = storageManager.loadFolders()
+        _mediaPlaces.value = storageManager.loadMediaPlaces()
 
         connectToMediaController()
         bindToExoPlayerService()
@@ -252,25 +252,25 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         val docFile = DocumentFile.fromTreeUri(context, uri)
         val name = docFile?.name ?: uri.lastPathSegment ?: context.getString(R.string.unknown_folder)
 
-        val newList = _folders.value.toMutableList().apply {
-            add(FolderBookmark(uri.toString(), name))
+        val newList = _mediaPlaces.value.toMutableList().apply {
+            add(MediaPlace(uri.toString(), name))
         }
-        _folders.value = newList
-        storageManager.saveFolders(newList)
+        _mediaPlaces.value = newList
+        storageManager.saveMediaPlaces(newList)
     }
 
-    fun removeFolder(folder: FolderBookmark) {
-        val currentList = _folders.value.toMutableList()
+    fun removeFolder(folder: MediaPlace) {
+        val currentList = _mediaPlaces.value.toMutableList()
         if (currentList.remove(folder)) {
-            _folders.value = currentList
-            storageManager.saveFolders(currentList)
+            _mediaPlaces.value = currentList
+            storageManager.saveMediaPlaces(currentList)
             storageManager.releaseUriPermission(folder.uriString.toUri())
         }
     }
 
     // --- Navigation & Playback ---
 
-    fun openFolder(folderUri: Uri, folderName: String) {
+    fun openFolder(folderUri: Uri, folderName: String, saveStack: Boolean = true) {
         viewModelScope.launch(Dispatchers.IO) {
             val docFile = DocumentFile.fromTreeUri(context, folderUri)
             if (docFile != null && docFile.isDirectory) {
@@ -289,12 +289,14 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
                 withContext(Dispatchers.Main) {
                     _currentFiles.value = files
 
-                    val newItem = FileItem(folderName, folderUri, true, Uri.EMPTY)
-                    if (_currentPathStack.value.isEmpty() || _currentPathStack.value.last().uri != folderUri) {
-                        _currentPathStack.value = _currentPathStack.value.plus(newItem)
-                    }
+                    if (saveStack) {
+                        if (_currentPathStack.value.isEmpty() || _currentPathStack.value.last().uri != folderUri) {
+                            val newItem = FileItem(folderName, folderUri, true, Uri.EMPTY)
+                            _currentPathStack.value = _currentPathStack.value.plus(newItem)
+                        }
 
-                    storageManager.saveLastOpenedFolder(folderUri, folderName)
+                        storageManager.saveCurrentPathStack(_currentPathStack.value)
+                    }
                 }
             }
         }
@@ -462,10 +464,17 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     }
 
     private fun restoreLastState() {
-        val lastState = storageManager.getLastOpenedFolder()
-        lastState?.let { (uri, name) ->
-            openFolder(uri, name)
+//        val lastState = storageManager.getLastOpenedFolder()
+//        lastState?.let { (uri, name) ->
+//            openFolder(uri, name)
+//        }
+        val lastPathStack = storageManager.loadLastPathStack()
+        _currentPathStack.value = lastPathStack
+        if (lastPathStack.isNotEmpty()) {
+            val lstState = lastPathStack.last()
+            openFolder(lstState.uri, lstState.name, false)
         }
+
         val lastPlayerState = storageManager.loadPlayerStatus()
         lastPlayerState.let {
             _playerStatus.value = _playerStatus.value.copy(

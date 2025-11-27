@@ -6,39 +6,41 @@ import android.net.Uri
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.kontranik.foplraudio.model.FolderBookmark
-import androidx.core.net.toUri
+import com.kontranik.foplraudio.model.MediaPlace
 import androidx.core.content.edit
 import androidx.documentfile.provider.DocumentFile
 import androidx.media3.common.Player
+import com.kontranik.foplraudio.model.FileItem
+import com.kontranik.foplraudio.model.FileItemDTO
 import com.kontranik.foplraudio.model.PlayerStatus
+import com.kontranik.foplraudio.model.toDTO
+import com.kontranik.foplraudio.model.toFileItem
 
 class StorageManager(private val context: Context) {
     private val prefs = context.getSharedPreferences("audio_player_prefs", Context.MODE_PRIVATE)
     private val gson = Gson()
 
     companion object {
-        const val FOLDER_BOOKMARKS = "folder_bookmarks"
-        const val last_folder_uri = "last_folder_uri"
-        const val last_folder_name = "last_folder_name"
-        const val last_played_uri = "last_played_uri"
-        const val pauseAtEndOfMediaItemsKey = "pauseAtEndOfMediaItems"
-        const val shuffleModeKey = "shuffleMode"
-        const val repeatModeKey = "repeatMode"
+        const val MEDIA_PLACES_KEY = "media_places"
+        const val LAST_PLAYED_URI_KEY = "last_played_uri"
+        const val PAUSE_AT_END_OF_MEDIA_ITEMS_KEY = "pauseAtEndOfMediaItems"
+        const val SHUFFLE_MODE_KEY = "shuffleMode"
+        const val REPEAT_MODE_KEY = "repeatMode"
+        const val CURRENT_PATH_STACK_KEY = "CURRENT_PATH_STACK"
     }
 
-    fun saveFolders(folders: List<FolderBookmark>) {
-        val json = gson.toJson(folders)
+    fun saveMediaPlaces(mediaPlaces: List<MediaPlace>) {
+        val json = gson.toJson(mediaPlaces)
         prefs.edit {
-            putString(FOLDER_BOOKMARKS, json)
+            putString(MEDIA_PLACES_KEY, json)
             apply()
         }
     }
 
-    fun loadFolders(): List<FolderBookmark> {
-        val json = prefs.getString(FOLDER_BOOKMARKS, null)
+    fun loadMediaPlaces(): List<MediaPlace> {
+        val json = prefs.getString(MEDIA_PLACES_KEY, null)
         return if (json != null) {
-            val type = object : TypeToken<List<FolderBookmark>>() {}.type
+            val type = object : TypeToken<List<MediaPlace>>() {}.type
             gson.fromJson(json, type)
         } else {
             emptyList()
@@ -67,73 +69,77 @@ class StorageManager(private val context: Context) {
 
     fun saveLastPlayedUri(uriString: String) {
         prefs.edit {
-            putString(last_played_uri, uriString)
+            putString(LAST_PLAYED_URI_KEY, uriString)
             apply()
         }
     }
 
-    fun saveLastOpenedFolder(uri: Uri, name: String) {
-        Log.d("StorageManager", "Saving last opened folder: $uri, $name")
-        prefs.edit {
-            putString(last_folder_uri, uri.toString())
-            putString(last_folder_name, name)
-            apply()
-        }
-    }
-
-    fun getLastOpenedFolder(): Pair<Uri, String>? {
-        val lastFolderUriStr = prefs.getString(last_folder_uri, null)
-        val lastFolderName = prefs.getString(last_folder_name, "Zuletzt geöffnet")
-
-        if (lastFolderUriStr != null) {
+    fun loadLastPathStack() : List<FileItem> {
+        val result: MutableList<FileItem> = mutableListOf()
+        val json = prefs.getString(CURRENT_PATH_STACK_KEY, null)
+        if (json != null) {
             try {
-                val uri = lastFolderUriStr.toUri()
-                Log.d("StorageManager", "Loading last opened folder: $uri, $lastFolderName")
-
-                val document = DocumentFile.fromTreeUri(context, uri)
-                if (document?.canRead() == true) {
-                    return Pair(uri, lastFolderName!!)
-                } else {
-                    Log.w("StorageManager", "Keine Berechtigung für $uri. Letzter Ordner wird gelöscht.")
-                    prefs.edit {
-                        remove(last_folder_uri)
-                        remove(last_folder_name)
-                        apply()
+                val type = object : TypeToken<List<FileItemDTO>>() {}.type
+                val stack: List<FileItemDTO> = gson.fromJson(json, type)
+                stack.forEach { item ->
+                    val fileItem = item.toFileItem()
+                    val document = DocumentFile.fromTreeUri(context, fileItem.uri)
+                    if (document?.canRead() == true) {
+                        result.add(fileItem)
+                    } else {
+                        Log.w("StorageManager", "No permissions for ${fileItem.uri}. This entry will be removed.")
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
-        return null
+        if (result.isEmpty()) {
+            prefs.edit {
+                remove(CURRENT_PATH_STACK_KEY)
+                apply()
+            }
+        }
+        return result
     }
+
+    fun saveCurrentPathStack(pathStack: List<FileItem>) {
+        val json = gson.toJson(pathStack.map { fileItem -> fileItem.toDTO() })
+        prefs.edit {
+            putString(CURRENT_PATH_STACK_KEY, json)
+            apply()
+        }
+    }
+
 
     fun loadPlayerStatus(): PlayerStatus {
         return PlayerStatus(
-            pauseAtEndOfMediaItems = prefs.getBoolean(pauseAtEndOfMediaItemsKey, false),
-            shuffleMode = prefs.getBoolean(shuffleModeKey, false),
-            repeatMode = prefs.getInt(repeatModeKey, Player.REPEAT_MODE_OFF)
+            pauseAtEndOfMediaItems = prefs.getBoolean(PAUSE_AT_END_OF_MEDIA_ITEMS_KEY, false),
+            shuffleMode = prefs.getBoolean(SHUFFLE_MODE_KEY, false),
+            repeatMode = prefs.getInt(REPEAT_MODE_KEY, Player.REPEAT_MODE_OFF)
         )
     }
 
     fun saveRepeatMode(repeatMode: Int) {
         prefs.edit {
-            putInt(repeatModeKey, repeatMode)
+            putInt(REPEAT_MODE_KEY, repeatMode)
             apply()
         }
     }
 
     fun saveShuffleMode(shuffleMode: Boolean) {
         prefs.edit {
-            putBoolean(shuffleModeKey, shuffleMode)
+            putBoolean(SHUFFLE_MODE_KEY, shuffleMode)
             apply()
         }
     }
 
     fun savePauseAtEndOfMediaItems(pauseAtEndOfMediaItems: Boolean) {
         prefs.edit {
-            putBoolean(pauseAtEndOfMediaItemsKey, pauseAtEndOfMediaItems)
+            putBoolean(PAUSE_AT_END_OF_MEDIA_ITEMS_KEY, pauseAtEndOfMediaItems)
             apply()
         }
     }
 }
+
+

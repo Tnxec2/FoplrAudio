@@ -20,8 +20,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        enableEdgeToEdge()
-
         // STARTE DEN PLAYBACK SERVICE
         // Dies ist notwendig, damit der MediaController im ViewModel eine Verbindung herstellen kann.
         // Der Service wird durch den startService-Call gestartet und läuft dann
