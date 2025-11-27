@@ -2,12 +2,10 @@ package com.kontranik.foplraudio.player
 
 import android.content.ComponentName
 import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
-import android.os.IBinder
+import android.os.Bundle
 import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -16,6 +14,7 @@ import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
@@ -26,8 +25,9 @@ import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import com.kontranik.foplraudio.R
@@ -49,11 +49,8 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
     private val storageManager = StorageManager(context)
 
+    var playerController: MediaController? = null
     private var controllerFuture: ListenableFuture<MediaController>? = null
-    private var mediaController: MediaController? = null
-
-    private val _directExoPlayer = MutableStateFlow<ExoPlayer?>(null)
-    val directExoPlayer = _directExoPlayer.asStateFlow()
 
     private val _isInitializing = MutableStateFlow(true)
     val isInitializing = _isInitializing.asStateFlow()
@@ -70,61 +67,6 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     private val _currentPathStack = MutableStateFlow<List<FileItem>>(emptyList())
     val currentPathStack = _currentPathStack.asStateFlow()
 
-    private val serviceConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            val binder = service as PlaybackService.LocalBinder
-            _directExoPlayer.value = binder.getPlayer()
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            _directExoPlayer.value = null
-        }
-    }
-
-    init {
-        _mediaPlaces.value = storageManager.loadMediaPlaces()
-
-        connectToMediaController()
-        bindToExoPlayerService()
-        restoreLastState()
-
-        viewModelScope.launch {
-            while (true) {
-                mediaController?.let { controller ->
-                    if (controller.isPlaying) {
-                        _playerStatus.value = _playerStatus.value.copy(
-                            position = controller.currentPosition,
-                            duration = controller.duration.coerceAtLeast(0L)
-                        )
-                    }
-                }
-                delay(500)
-            }
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.P)
-    private fun connectToMediaController() {
-        val sessionToken = SessionToken(
-            context,
-            ComponentName(context, PlaybackService::class.java)
-        )
-        controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
-
-        controllerFuture?.addListener({
-            mediaController = controllerFuture?.get()
-            mediaController?.addListener(controllerListener)
-            initControllerState()
-            _isInitializing.value = false
-        }, context.mainExecutor)
-    }
-
-    private fun bindToExoPlayerService() {
-        val intent = Intent(context, PlaybackService::class.java).apply {
-            action = PlaybackService.ACTION_BIND_EXOPLAYER
-        }
-        context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
-    }
 
     private val controllerListener = object : Player.Listener {
 
@@ -133,7 +75,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            updateCurrentTrackInfo(mediaController?.currentMediaItem)
+            updateCurrentTrackInfo(playerController?.currentMediaItem)
             updatePlaylistState()
         }
 
@@ -144,7 +86,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_READY) {
                 _playerStatus.value = _playerStatus.value.copy(
-                    duration = mediaController?.duration ?: 0L
+                    duration = playerController?.duration ?: 0L
                 )
             }
         }
@@ -160,21 +102,62 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    private fun initControllerState() {
-        mediaController?.let { controller ->
+    init {
+        restoreLastState()
 
+        initController()
+
+        viewModelScope.launch {
+            while (true) {
+                playerController?.let { controller ->
+                    if (controller.isPlaying) {
+                        _playerStatus.value = _playerStatus.value.copy(
+                            position = controller.currentPosition,
+                            duration = controller.duration.coerceAtLeast(0L)
+                        )
+                    }
+                }
+                delay(500)
+            }
+        }
+    }
+
+    private fun initController() {
+        val sessionToken =
+            SessionToken(
+                context,
+                ComponentName(context, PlaybackService::class.java)
+            )
+
+        controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+
+        controllerFuture?.addListener({
+            try {
+                val controller = controllerFuture?.get()
+                playerController = controller
+                playerController?.addListener( controllerListener)
+                initControllerState()
+                _isInitializing.value = false
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }, ContextCompat.getMainExecutor(context))
+    }
+
+    private fun initControllerState() {
+        playerController?.let { controller ->
             _playerStatus.value = _playerStatus.value.copy(
                 isPlaying = controller.isPlaying,
                 duration = controller.duration.coerceAtLeast(0L)
             )
             controller.shuffleModeEnabled = _playerStatus.value.shuffleMode
             controller.repeatMode = _playerStatus.value.repeatMode
-            directExoPlayer.value?.pauseAtEndOfMediaItems = _playerStatus.value.pauseAtEndOfMediaItems
+            setPauseAtEndOfMediaItems(_playerStatus.value.pauseAtEndOfMediaItems)
 
             val lastPlaylist = storageManager.loadLastPlaylist()
             if (lastPlaylist.playlist.isNotEmpty()) {
-                mediaController?.setMediaItems(lastPlaylist.playlist, lastPlaylist.currentIndex, 0L)
-                mediaController?.prepare()
+                controller.setMediaItems(lastPlaylist.playlist, lastPlaylist.currentIndex, 0L)
+                controller.prepare()
             } else {
                 updatePlaylistState()
             }
@@ -191,9 +174,9 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
             currentTrackTitle = title,
             currentTrackArtist = artist,
             currentArtworkBytes = artworkBytes,
-            duration = mediaController?.duration?.coerceAtLeast(0L) ?: 0L,
+            duration = playerController?.duration?.coerceAtLeast(0L) ?: 0L,
             position = 0L,
-            currentIndex = mediaController?.currentMediaItemIndex ?: -1
+            currentIndex = playerController?.currentMediaItemIndex ?: -1
         )
     }
 
@@ -207,7 +190,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     }
 
     private fun updatePlaylistState() {
-        mediaController?.let { controller ->
+        playerController?.let { controller ->
             val items = mutableListOf<MediaItem>()
             for (i in 0 until controller.mediaItemCount) {
                 items.add(controller.getMediaItemAt(i))
@@ -244,12 +227,12 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     // --- Playlist Management ---
 
     fun playQueueItem(index: Int) {
-        mediaController?.seekToDefaultPosition(index)
-        mediaController?.play()
+        playerController?.seekToDefaultPosition(index)
+        playerController?.play()
     }
 
     fun removeQueueItem(index: Int) {
-        mediaController?.removeMediaItem(index)
+        playerController?.removeMediaItem(index)
     }
 
     // --- Folder Management (unchanged logic) ---
@@ -335,9 +318,9 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
             withContext(Dispatchers.Main) {
                 val startIndex = audioFiles.indexOfFirst { it.uri == selectedFile.uri }
                 if (startIndex != -1) {
-                    mediaController?.setMediaItems(mediaItems, startIndex, 0L)
-                    mediaController?.prepare()
-                    mediaController?.play()
+                    playerController?.setMediaItems(mediaItems, startIndex, 0L)
+                    playerController?.prepare()
+                    playerController?.play()
                 }
             }
         }
@@ -370,10 +353,13 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
         withContext(Dispatchers.Main) {
             if (mediaItems.isNotEmpty()) {
-                if (replace) mediaController?.setMediaItems(mediaItems, 0, 0L)
-                else  mediaController?.addMediaItems(mediaItems)
-                mediaController?.prepare()
-                mediaController?.play()
+                if (replace) {
+                    playerController?.setMediaItems(mediaItems, 0, 0L)
+                    playerController?.prepare()
+                    playerController?.play()
+                } else {
+                    playerController?.addMediaItems(mediaItems)
+                }
             } else {
                 Toast.makeText(context,
                     context.getString(R.string.no_audio_files_found), Toast.LENGTH_SHORT).show()
@@ -421,21 +407,21 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     // --- Player Controls (über Controller) ---
 
     fun togglePlayPause() {
-        mediaController?.let {
+        playerController?.let {
             if (it.isPlaying) it.pause() else it.play()
         }
     }
 
-    fun skipNext() = mediaController?.seekToNext()
-    fun skipPrev() = mediaController?.seekToPrevious()
-    fun seekTo(pos: Long) = mediaController?.seekTo(pos)
+    fun skipNext() = playerController?.seekToNext()
+    fun skipPrev() = playerController?.seekToPrevious()
+    fun seekTo(pos: Long) = playerController?.seekTo(pos)
 
     fun toggleShuffle() {
-        mediaController?.shuffleModeEnabled = !(mediaController?.shuffleModeEnabled ?: false)
+        playerController?.shuffleModeEnabled = !(playerController?.shuffleModeEnabled ?: false)
     }
 
     fun toggleRepeat() {
-        mediaController?.let { controller ->
+        playerController?.let { controller ->
             val modes = listOf(Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL, Player.REPEAT_MODE_ONE)
             val current = controller.repeatMode
             val next = modes[(modes.indexOf(current) + 1) % modes.size]
@@ -443,18 +429,63 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun togglePauseAtEndOfMediaItems() {
-        directExoPlayer.value?.let {
-            val pauseAtEndOfMediaItems = it.pauseAtEndOfMediaItems.not()
-            it.pauseAtEndOfMediaItems = pauseAtEndOfMediaItems
-            _playerStatus.value = _playerStatus.value.copy(
-                pauseAtEndOfMediaItems = pauseAtEndOfMediaItems
-            )
-            storageManager.savePauseAtEndOfMediaItems(pauseAtEndOfMediaItems)
+    private fun setPauseAtEndOfMediaItems(pauseAtEnd: Boolean) {
+        playerController?.let {
+            val args = Bundle().apply {
+                putBoolean(CustomCommands.PARAM_PAUSE_AT_END, pauseAtEnd)
+            }
+            // Erstellen Sie den Befehl
+            val command = SessionCommand(CustomCommands.ACTION_TOGGLE_PAUSE_AT_END, args)
+            // Senden Sie den Befehl an den Service
+            playerController?.sendCustomCommand(command, args)
         }
     }
 
+    fun togglePauseAtEndOfMediaItems() {
+        val newPauseAtEnd = _playerStatus.value.pauseAtEndOfMediaItems.not()
+        setPauseAtEndOfMediaItems(newPauseAtEnd)
+        _playerStatus.value = _playerStatus.value.copy(pauseAtEndOfMediaItems = newPauseAtEnd)
+        storageManager.savePauseAtEndOfMediaItems(newPauseAtEnd)
+    }
+
     // --- Helpers ---
+
+    fun requestPauseAtEndStatus() {
+        // Den Befehl ohne Argumente erstellen
+        val command = CustomCommands.COMMAND_GET_PAUSE_AT_END_STATUS
+        val commandFuture = playerController?.sendCustomCommand(command, Bundle.EMPTY)
+
+        // Einen Listener hinzufügen, um auf das Ergebnis zu warten.
+        // Wichtig: Der Listener wird auf einem Executor-Thread ausgeführt.
+        // UI-Updates müssen zurück auf den Main-Thread.
+        commandFuture?.addListener({
+            try {
+                // Ergebnis aus der Future holen
+                val sessionResult = commandFuture.get()
+
+                // Überprüfen, ob der Befehl erfolgreich war
+                if (sessionResult.resultCode == SessionResult.RESULT_SUCCESS) {
+                    // Das Ergebnis-Bundle auslesen
+                    val resultBundle = sessionResult.extras
+                    val status = resultBundle.getBoolean(CustomCommands.RESULT_PAUSE_AT_END_STATUS, false)
+
+                    // Den Status im ViewModel aktualisieren (z.B. in einem StateFlow)
+                    // Da dies in einem Hintergrund-Thread passiert, verwenden Sie .postValue() für LiveData
+                    // oder stellen sicher, dass Ihr StateFlow thread-sicher aktualisiert wird.
+                    // Für Compose State ist es am besten, auf den Main-Thread zu wechseln.
+
+                    // Hier Beispielhaft mit einem StateFlow
+                    _playerStatus.value = _playerStatus.value.copy(pauseAtEndOfMediaItems = status)
+
+                    Log.d("PlayerViewModel", "Status empfangen: pauseAtEnd = $status")
+                }
+            } catch (e: Exception) {
+                // Fehlerbehandlung (z.B. InterruptedException, ExecutionException)
+                Log.e("PlayerViewModel", "Fehler beim Abrufen des Status", e)
+            }
+        }, ContextCompat.getMainExecutor(context)) // Führt den Listener auf dem Main-Thread aus
+    }
+
     private fun isAudioFile(name: String, path: String): Boolean {
         val lower = name.lowercase()
         val mime = getMimeType(path)
@@ -467,6 +498,8 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     }
 
     private fun restoreLastState() {
+        _mediaPlaces.value = storageManager.loadMediaPlaces()
+
         val lastPathStack = storageManager.loadLastPathStack()
         _currentPathStack.value = lastPathStack
         if (lastPathStack.isNotEmpty()) {
@@ -481,16 +514,12 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
                 repeatMode = it.repeatMode,
                 pauseAtEndOfMediaItems = it.pauseAtEndOfMediaItems
             )
-            directExoPlayer.value?.shuffleModeEnabled = it.shuffleMode
-            directExoPlayer.value?.repeatMode = it.repeatMode
-            directExoPlayer.value?.pauseAtEndOfMediaItems = it.pauseAtEndOfMediaItems
         }
     }
 
     override fun onCleared() {
-        mediaController?.removeListener(controllerListener)
-        controllerFuture?.let { MediaController.releaseFuture(it) }
-        context.unbindService(serviceConnection)
+        playerController?.removeListener(controllerListener)
+
         super.onCleared()
     }
 }
