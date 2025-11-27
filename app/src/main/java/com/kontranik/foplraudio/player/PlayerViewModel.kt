@@ -57,6 +57,9 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     private val _directExoPlayer = MutableStateFlow<ExoPlayer?>(null)
     val directExoPlayer = _directExoPlayer.asStateFlow() // Kann nun von anderen Komponenten abonniert werden
 
+    private val _isInitializing = MutableStateFlow(true)
+    val isInitializing = _isInitializing.asStateFlow()
+
     // DER KONSOLIDIERTE PLAYER-STATUS
     private val _playerStatus = MutableStateFlow(PlayerStatus())
     val playerStatus = _playerStatus.asStateFlow()
@@ -65,9 +68,11 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     private val _mediaPlaces = MutableStateFlow<List<MediaPlace>>(emptyList())
     val mediaPlaces = _mediaPlaces.asStateFlow()
 
+    // Liste der Dateien im Ordner
     private val _currentFiles = MutableStateFlow<List<FileItem>>(emptyList())
     val currentFiles = _currentFiles.asStateFlow()
 
+    // Liste des Ordners im Ordnerbrowser
     private val _currentPathStack = MutableStateFlow<List<FileItem>>(emptyList())
     val currentPathStack = _currentPathStack.asStateFlow()
 
@@ -90,7 +95,6 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
         connectToMediaController()
         bindToExoPlayerService()
-
         restoreLastState()
 
         viewModelScope.launch {
@@ -107,6 +111,8 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
                 delay(500)
             }
         }
+
+        _isInitializing.value = false
     }
 
     /**
@@ -124,7 +130,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
             mediaController = controllerFuture?.get()
             mediaController?.addListener(controllerListener)
             // Initialen Status beim Verbinden abrufen
-            updateControllerState()
+            initControllerState()
         }, context.mainExecutor)
     }
 
@@ -139,6 +145,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     }
 
     private val controllerListener = object : Player.Listener {
+
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _playerStatus.value = _playerStatus.value.copy(isPlaying = isPlaying)
         }
@@ -171,8 +178,9 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    private fun updateControllerState() {
+    private fun initControllerState() {
         mediaController?.let { controller ->
+
             _playerStatus.value = _playerStatus.value.copy(
                 isPlaying = controller.isPlaying,
 //                shuffleMode = controller.shuffleModeEnabled,
@@ -183,8 +191,14 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
             controller.repeatMode = _playerStatus.value.repeatMode
             directExoPlayer.value?.pauseAtEndOfMediaItems = _playerStatus.value.pauseAtEndOfMediaItems
 
+            val lastPlaylist = storageManager.loadLastPlaylist()
+            if (lastPlaylist.playlist.isNotEmpty()) {
+                mediaController?.setMediaItems(lastPlaylist.playlist, lastPlaylist.currentIndex, 0L)
+                mediaController?.prepare()
+            } else {
+                updatePlaylistState()
+            }
             updateCurrentTrackInfo(controller.currentMediaItem)
-            updatePlaylistState()
         }
     }
 
@@ -201,10 +215,6 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
             position = 0L,
             currentIndex = mediaController?.currentMediaItemIndex ?: -1
         )
-
-        mediaItem?.mediaId?.let { uriStr ->
-            storageManager.saveLastPlayedUri(uriStr)
-        }
     }
 
     fun getTrackIconFallback(title: String): ImageVector {
@@ -222,15 +232,32 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
             for (i in 0 until controller.mediaItemCount) {
                 items.add(controller.getMediaItemAt(i))
             }
-            _playerStatus.value = _playerStatus.value.copy(
-                playlist = items,
-                currentIndex = controller.currentMediaItemIndex
-            )
+            var isPlaylistSame = items.size == _playerStatus.value.playlist.size
+
+            if (isPlaylistSame) {
+                for (item in items) {
+                    if (_playerStatus.value.playlist.find { pl -> pl.mediaId == item.mediaId } == null) {
+                        isPlaylistSame = false
+                        break
+                    }
+                }
+            }
+
+            if (!isPlaylistSame) {
+                _playerStatus.value = _playerStatus.value.copy(
+                    playlist = items,
+                    currentIndex = controller.currentMediaItemIndex
+                )
+                storageManager.savePlaylist(items)
+
+            }
+            storageManager.savePlaylistCurrentIndex(controller.currentMediaItemIndex)
         } ?: run {
             _playerStatus.value = _playerStatus.value.copy(
                 playlist = emptyList(),
                 currentIndex = -1
             )
+            storageManager.clearPlaylist()
         }
     }
 
