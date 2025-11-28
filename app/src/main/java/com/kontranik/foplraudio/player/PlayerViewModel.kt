@@ -6,6 +6,7 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.webkit.MimeTypeMap
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -14,7 +15,6 @@ import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
@@ -23,13 +23,12 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
-import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionCommand
-import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.MoreExecutors
 import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.data.StorageManager
 import com.kontranik.foplraudio.model.FileItem
@@ -45,15 +44,12 @@ import kotlinx.coroutines.withContext
 
 @RequiresApi(Build.VERSION_CODES.P)
 @androidx.annotation.OptIn(UnstableApi::class)
-class PlayerViewModel(private val context: Context) : ViewModel() {
-
-    private val storageManager = StorageManager(context)
+class PlayerViewModel(
+    private val context: Context,
+    private val storageManager: StorageManager) : ViewModel() {
 
     var playerController: MediaController? = null
     private var controllerFuture: ListenableFuture<MediaController>? = null
-
-    private val _isInitializing = MutableStateFlow(true)
-    val isInitializing = _isInitializing.asStateFlow()
 
     private val _playerStatus = MutableStateFlow(PlayerStatus())
     val playerStatus = _playerStatus.asStateFlow()
@@ -103,9 +99,8 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     }
 
     init {
-        restoreLastState()
-
-        initController()
+        restoreLastState(context)
+        initController(context)
 
         viewModelScope.launch {
             while (true) {
@@ -122,7 +117,8 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    private fun initController() {
+    private fun initController(context: Context) {
+        Log.d("NIK", "initController")
         val sessionToken =
             SessionToken(
                 context,
@@ -133,15 +129,15 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
         controllerFuture?.addListener({
             try {
+                Log.d("NIK", "initController.ready")
                 val controller = controllerFuture?.get()
                 playerController = controller
                 playerController?.addListener( controllerListener)
                 initControllerState()
-                _isInitializing.value = false
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-        }, ContextCompat.getMainExecutor(context))
+        }, MoreExecutors.directExecutor())
     }
 
     private fun initControllerState() {
@@ -237,7 +233,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
     // --- Folder Management (unchanged logic) ---
 
-    fun addFolder(uri: Uri) {
+    fun addFolder(context: Context, uri: Uri) {
         storageManager.persistUriPermission(uri)
         val docFile = DocumentFile.fromTreeUri(context, uri)
         val name = docFile?.name ?: uri.lastPathSegment ?: context.getString(R.string.unknown_folder)
@@ -260,7 +256,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
     // --- Navigation & Playback ---
 
-    fun openFolder(folderUri: Uri, folderName: String, saveStack: Boolean = true) {
+    fun openFolder(context: Context, folderUri: Uri, folderName: String, saveStack: Boolean = true) {
         viewModelScope.launch(Dispatchers.IO) {
             val docFile = DocumentFile.fromTreeUri(context, folderUri)
             if (docFile != null && docFile.isDirectory) {
@@ -292,26 +288,26 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun navigateBack() {
+    fun navigateBack(context: Context) {
         val stack = _currentPathStack.value
         if (stack.isNotEmpty()) {
             val newStack = stack.dropLast(1)
             _currentPathStack.value = newStack
             if (newStack.isNotEmpty()) {
                 val previousFolder = newStack.last()
-                openFolder(previousFolder.uri, previousFolder.name)
+                openFolder(context, previousFolder.uri, previousFolder.name)
             }
         }
     }
 
-    fun playFile(selectedFile: FileItem, allFiles: List<FileItem>) {
+    fun playFile(context: Context, selectedFile: FileItem, allFiles: List<FileItem>) {
         val audioFiles = allFiles.filter { !it.isDirectory }
         viewModelScope.launch(Dispatchers.IO) {
             val mediaItems = audioFiles.map { fileItem ->
                 MediaItem.Builder()
                     .setUri(fileItem.uri)
                     .setMediaId(fileItem.uri.toString())
-                    .setMediaMetadata(getMetadata(fileItem.uri, fileItem.name))
+                    .setMediaMetadata(getMetadata(context, fileItem.uri, fileItem.name))
                     .build()
             }
 
@@ -326,28 +322,28 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun playFolderRecursive(folderUri: Uri) {
-        playFolderRecursive(folderUri, true)
+    fun playFolderRecursive(context: Context, folderUri: Uri) {
+        playFolderRecursive(context, folderUri, true)
     }
 
-    fun addFolderRecursive(folderUri: Uri) {
-        playFolderRecursive(folderUri, false)
+    fun addFolderRecursive(context: Context,folderUri: Uri) {
+        playFolderRecursive(context, folderUri, false)
     }
 
-    private fun playFolderRecursive(folderUri: Uri, replace: Boolean) {
+    private fun playFolderRecursive(context: Context, folderUri: Uri, replace: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
             val docFile = DocumentFile.fromTreeUri(context, folderUri)
             val files = if (docFile != null) getAllAudioFilesRecursive(docFile) else emptyList()
-            loadMediaItems(files, replace)
+            loadMediaItems(context, files, replace)
         }
     }
 
-    private suspend fun loadMediaItems(files: List<DocumentFile>, replace: Boolean = false) {
+    private suspend fun loadMediaItems(context: Context, files: List<DocumentFile>, replace: Boolean = false) {
         val mediaItems = files.map { file ->
             MediaItem.Builder()
                 .setUri(file.uri)
                 .setMediaId(file.uri.toString())
-                .setMediaMetadata(getMetadata(file.uri, file.name ?: context.getString(R.string.unknown)))
+                .setMediaMetadata(getMetadata(context, file.uri, file.name ?: context.getString(R.string.unknown)))
                 .build()
         }
 
@@ -367,7 +363,7 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    private fun getMetadata(uri: Uri, fallBackName: String) : MediaMetadata {
+    private fun getMetadata(context: Context, uri: Uri, fallBackName: String) : MediaMetadata {
         val retriever = MediaMetadataRetriever()
         val metadataBuilder = MediaMetadata.Builder()
         try {
@@ -450,42 +446,6 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
 
     // --- Helpers ---
 
-    fun requestPauseAtEndStatus() {
-        // Den Befehl ohne Argumente erstellen
-        val command = CustomCommands.COMMAND_GET_PAUSE_AT_END_STATUS
-        val commandFuture = playerController?.sendCustomCommand(command, Bundle.EMPTY)
-
-        // Einen Listener hinzufügen, um auf das Ergebnis zu warten.
-        // Wichtig: Der Listener wird auf einem Executor-Thread ausgeführt.
-        // UI-Updates müssen zurück auf den Main-Thread.
-        commandFuture?.addListener({
-            try {
-                // Ergebnis aus der Future holen
-                val sessionResult = commandFuture.get()
-
-                // Überprüfen, ob der Befehl erfolgreich war
-                if (sessionResult.resultCode == SessionResult.RESULT_SUCCESS) {
-                    // Das Ergebnis-Bundle auslesen
-                    val resultBundle = sessionResult.extras
-                    val status = resultBundle.getBoolean(CustomCommands.RESULT_PAUSE_AT_END_STATUS, false)
-
-                    // Den Status im ViewModel aktualisieren (z.B. in einem StateFlow)
-                    // Da dies in einem Hintergrund-Thread passiert, verwenden Sie .postValue() für LiveData
-                    // oder stellen sicher, dass Ihr StateFlow thread-sicher aktualisiert wird.
-                    // Für Compose State ist es am besten, auf den Main-Thread zu wechseln.
-
-                    // Hier Beispielhaft mit einem StateFlow
-                    _playerStatus.value = _playerStatus.value.copy(pauseAtEndOfMediaItems = status)
-
-                    Log.d("PlayerViewModel", "Status empfangen: pauseAtEnd = $status")
-                }
-            } catch (e: Exception) {
-                // Fehlerbehandlung (z.B. InterruptedException, ExecutionException)
-                Log.e("PlayerViewModel", "Fehler beim Abrufen des Status", e)
-            }
-        }, ContextCompat.getMainExecutor(context)) // Führt den Listener auf dem Main-Thread aus
-    }
-
     private fun isAudioFile(name: String, path: String): Boolean {
         val lower = name.lowercase()
         val mime = getMimeType(path)
@@ -497,14 +457,15 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
         return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
     }
 
-    private fun restoreLastState() {
+    private fun restoreLastState(context: Context) {
+        Log.d("NIK", "restoreLastState")
         _mediaPlaces.value = storageManager.loadMediaPlaces()
 
         val lastPathStack = storageManager.loadLastPathStack()
         _currentPathStack.value = lastPathStack
         if (lastPathStack.isNotEmpty()) {
             val lstState = lastPathStack.last()
-            openFolder(lstState.uri, lstState.name, false)
+            openFolder(context, lstState.uri, lstState.name, false)
         }
 
         val lastPlayerState = storageManager.loadPlayerStatus()
@@ -518,19 +479,12 @@ class PlayerViewModel(private val context: Context) : ViewModel() {
     }
 
     override fun onCleared() {
-        playerController?.removeListener(controllerListener)
+        clearController()
 
         super.onCleared()
     }
-}
 
-class PlayerViewModelFactory(private val context: Context) : androidx.lifecycle.ViewModelProvider.Factory {
-    @RequiresApi(Build.VERSION_CODES.P)
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(PlayerViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return PlayerViewModel(context) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
+    fun clearController() {
+        playerController?.removeListener(controllerListener)
     }
 }

@@ -26,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.kontranik.foplraudio.AppViewModelProvider
 import com.kontranik.foplraudio.R
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,7 +48,7 @@ import com.kontranik.foplraudio.R
 @Composable
 fun AudioPlayerApp() {
     val context = LocalContext.current
-    val viewModel: PlayerViewModel = viewModel(factory = PlayerViewModelFactory(context))
+    val viewModel: PlayerViewModel = viewModel(factory = AppViewModelProvider.Factory)
 
     val folders by viewModel.mediaPlaces.collectAsState()
     val currentPathStack by viewModel.currentPathStack.collectAsState()
@@ -54,12 +56,11 @@ fun AudioPlayerApp() {
 
     val folderPickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-            uri?.let { viewModel.addFolder(it) }
+            uri?.let { viewModel.addFolder(context, it) }
         }
 
     var showPlaylist by remember { mutableStateOf(false) }
     val status by viewModel.playerStatus.collectAsState()
-    val isInitializing by viewModel.isInitializing.collectAsState()
 
     val title = if (currentPathStack.isEmpty()) {
                 stringResource(R.string.music_places)
@@ -92,7 +93,7 @@ fun AudioPlayerApp() {
                     if (currentPathStack.isNotEmpty()) {
                         if (showPlaylist.not()) {
                             IconButton(onClick = {
-                                viewModel.navigateBack()
+                                viewModel.navigateBack(context)
                             }) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.ArrowBack,
@@ -128,7 +129,7 @@ fun AudioPlayerApp() {
                 FolderListScreen(
                     folders = folders,
                     onFolderClick = { uriStr, name ->
-                        viewModel.openFolder(uriStr.toUri(), name)
+                        viewModel.openFolder(context, uriStr.toUri(), name)
                     },
                     onRemoveFolder = { folder ->
                         viewModel.removeFolder(folder)
@@ -139,50 +140,30 @@ fun AudioPlayerApp() {
                     files = currentFiles,
                     onFileClick = { file ->
                         if (file.isDirectory) {
-                            viewModel.openFolder(file.uri, file.name)
+                            viewModel.openFolder(context, file.uri, file.name)
                         } else {
-                            viewModel.playFile(file, currentFiles)
+                            viewModel.playFile(context, file, currentFiles)
                         }
                     },
                     onContextPlayFolder = { folderUri ->
-                        viewModel.playFolderRecursive(folderUri)
+                        viewModel.playFolderRecursive(context, folderUri)
                     },
                     onContextAddToPlayFolder = { folderUri ->
-                        viewModel.addFolderRecursive(folderUri)
+                        viewModel.addFolderRecursive(context, folderUri)
                     },
                     onPlayAllRecursive = {
                         val currentFolder = currentPathStack.lastOrNull()
                         if (currentFolder != null) {
-                            viewModel.playFolderRecursive(currentFolder.uri)
+                            viewModel.playFolderRecursive(context, currentFolder.uri)
                         }
                     }
                 )
             }
-            
-            if (isInitializing) {
-                LoadingScreen()
-            }
+
         }
     }
 
     androidx.activity.compose.BackHandler(enabled = currentPathStack.isNotEmpty()) {
-        viewModel.navigateBack()
-    }
-}
-
-@Composable
-fun LoadingScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Load saved state...")
-        }
+        viewModel.navigateBack(context)
     }
 }
