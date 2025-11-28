@@ -28,6 +28,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,9 +55,23 @@ fun CurrentPlaylist(
 ) {
     val listState = rememberLazyListState()
 
+    val visibleItemIds: List<Int> by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val visibleItemsInfo = layoutInfo.visibleItemsInfo
+            if (visibleItemsInfo.isEmpty()) {
+                emptyList()
+            } else {
+                visibleItemsInfo.map { it.index }
+            }
+        }
+    }
+
     LaunchedEffect(status.currentIndex) {
         if (status.currentIndex in 0 until status.playlist.size) {
-            listState.animateScrollToItem(status.currentIndex)
+            if (!visibleItemIds.contains(status.currentIndex)) {
+                listState.animateScrollToItem(status.currentIndex)
+            }
         }
     }
     
@@ -98,7 +115,7 @@ fun CurrentPlaylist(
                             Spacer(modifier = Modifier.width(8.dp))
                         }
                         val artworkModifier = Modifier
-                            .size(48.dp)
+                            .size(40.dp)
                             .padding(end = 8.dp)
                             .background(Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
                         val bitmap = item.mediaMetadata.artworkData?.let {BitmapFactory.decodeByteArray(it, 0, it.size) }?.asImageBitmap()

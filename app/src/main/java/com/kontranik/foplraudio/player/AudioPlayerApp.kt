@@ -71,9 +71,19 @@ fun AudioPlayerApp() {
 
     val status by viewModel.playerStatus.collectAsState()
 
+
+    var showPlaylist by remember { mutableStateOf(false) }
+    val title = if (showPlaylist) {
+        stringResource(R.string.current_playlist)
+    } else if (currentPathStack.isEmpty()) {
+        stringResource(R.string.music_places)
+    } else {
+        currentPathStack.last().name
+    }
+
     Scaffold(
         bottomBar = {
-            if (!isLandscape) PlayerBar(viewModel)
+            if (!isLandscape) PlayerBar(viewModel, togglePlaylist = { showPlaylist = !showPlaylist})
         },
         modifier = Modifier.safeDrawingPadding()
     ) { innerPadding ->
@@ -82,6 +92,9 @@ fun AudioPlayerApp() {
             .fillMaxSize()) {
             if (isLandscape) {
                 LandscapeLayout(
+                    showPlaylist = showPlaylist,
+                    togglePlaylist = { showPlaylist = !showPlaylist },
+                    title = title,
                     folders = folders,
                     currentPathStack = currentPathStack,
                     currentFiles = currentFiles,
@@ -106,11 +119,14 @@ fun AudioPlayerApp() {
                         viewModel.addFolderRecursive(context, it)
                     },
                     playerBar = {
-                        PlayerBar(viewModel)
+                        PlayerBar(viewModel, stretchArt = true, togglePlaylist = { showPlaylist = !showPlaylist})
                     }
                 )
             } else {
                 PortraitLayout(
+                    showPlaylist = showPlaylist,
+                    togglePlaylist = { showPlaylist = !showPlaylist },
+                    title = title,
                     folders = folders,
                     currentPathStack = currentPathStack,
                     currentFiles = currentFiles,
@@ -147,6 +163,9 @@ fun AudioPlayerApp() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PortraitLayout(
+    showPlaylist: Boolean,
+    togglePlaylist: () -> Unit,
+    title: String,
     folders: List<MediaPlace>,
     currentPathStack: List<FileItem>,
     currentFiles: List<FileItem>,
@@ -162,16 +181,6 @@ fun PortraitLayout(
     removeFolder: (MediaPlace) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showPlaylist by remember { mutableStateOf(false) }
-
-    val title = if (currentPathStack.isEmpty()) {
-        stringResource(R.string.music_places)
-    } else {
-        if (showPlaylist)
-            stringResource(R.string.current_playlist)
-        else
-            currentPathStack.last().name
-    }
 
     Column(
         modifier = modifier
@@ -201,12 +210,17 @@ fun PortraitLayout(
                 }
             },
             actions = {
-                if (currentPathStack.isEmpty()) {
-                    IconButton(onClick = { addFolder() }) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_place))
+                if (!showPlaylist) {
+                    if (currentPathStack.isEmpty()) {
+                        IconButton(onClick = { addFolder() }) {
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = stringResource(R.string.add_place)
+                            )
+                        }
                     }
                 }
-                IconButton(onClick = { showPlaylist = !showPlaylist }) {
+                IconButton(onClick = { togglePlaylist() }) {
                     Icon(
                         if (!showPlaylist) Icons.AutoMirrored.Filled.List else Icons.Default.Close,
                         contentDescription = stringResource(R.string.current_playlist))
@@ -261,6 +275,9 @@ fun PortraitLayout(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LandscapeLayout(
+    showPlaylist: Boolean,
+    togglePlaylist: () -> Unit,
+    title: String,
     folders: List<MediaPlace>,
     currentPathStack: List<FileItem>,
     currentFiles: List<FileItem>,
@@ -278,12 +295,6 @@ fun LandscapeLayout(
     playerBar: @Composable () -> Unit
 ) {
 
-    val title = if (currentPathStack.isEmpty()) {
-        stringResource(R.string.music_places)
-    } else {
-        currentPathStack.last().name
-    }
-
     Row(
         modifier = modifier.fillMaxSize()
     ) {
@@ -300,30 +311,45 @@ fun LandscapeLayout(
                 },
                 navigationIcon = {
                     if (currentPathStack.isNotEmpty()) {
-                        IconButton(onClick = {
-                            navigateBack()
-                        }) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(
-                                    R.string.back
+                        if (showPlaylist.not()) {
+                            IconButton(onClick = {
+                                navigateBack()
+                            }) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = stringResource(
+                                        R.string.back
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 },
                 actions = {
-                    if (currentPathStack.isEmpty()) {
-                        IconButton(onClick = { addFolder() }) {
-                            Icon(
-                                Icons.Default.Add,
-                                contentDescription = stringResource(R.string.add_place)
-                            )
+                    if (!showPlaylist) {
+                        if (currentPathStack.isEmpty()) {
+                            IconButton(onClick = { addFolder() }) {
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = stringResource(R.string.add_place)
+                                )
+                            }
                         }
+                    }
+                    IconButton(onClick = { togglePlaylist() }) {
+                        Icon(
+                            if (!showPlaylist) Icons.AutoMirrored.Filled.List else Icons.Default.Close,
+                            contentDescription = stringResource(R.string.current_playlist))
                     }
                 }
             )
-            if (currentPathStack.isEmpty()) {
+            if (showPlaylist) {
+                CurrentPlaylist(
+                    status = status,
+                    onPlayItem = { playQueueItem(it) },
+                    onRemoveItem = { removeQueueItem(it) },
+                )
+            } else if (currentPathStack.isEmpty()) {
                 FolderListScreen(
                     folders = folders,
                     onFolderClick = { uriStr, name ->
@@ -361,12 +387,6 @@ fun LandscapeLayout(
         Column(
             Modifier.weight(1f)
         ) {
-            CurrentPlaylist(
-                status = status,
-                onPlayItem = { playQueueItem(it) },
-                onRemoveItem = { removeQueueItem(it) },
-                modifier = Modifier.weight(1f)
-            )
             playerBar()
         }
     }

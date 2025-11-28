@@ -1,18 +1,22 @@
 package com.kontranik.foplraudio.player
 
 import android.graphics.BitmapFactory
+import android.icu.number.IntegerWidth
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -57,7 +61,9 @@ import com.kontranik.foplraudio.player.helpers.formatDuration
 @RequiresApi(Build.VERSION_CODES.P)
 @Composable
 fun PlayerBar(
-    viewModel: PlayerViewModel
+    viewModel: PlayerViewModel,
+    stretchArt: Boolean = false,
+    togglePlaylist: () -> Unit,
 ) {
     val status by viewModel.playerStatus.collectAsState()
 
@@ -71,22 +77,39 @@ fun PlayerBar(
         }
     }
 
-    PlayerBarContent(
-        status,
-        imageBitmap,
-        seekTo = { viewModel.seekTo(it) },
-        togglePauseAtEndOfMediaItems = { viewModel.togglePauseAtEndOfMediaItems() },
-        skipPrev = { viewModel.skipPrev() },
-        skipNext = { viewModel.skipNext() },
-        togglePlayPause = { viewModel.togglePlayPause() },
-        toggleShuffle = { viewModel.toggleShuffle() },
-        toggleRepeat = { viewModel.toggleRepeat() },
-        fallBackIcon = viewModel.getTrackIconFallback(status.currentTrackTitle),
-    )
+    if (!stretchArt) {
+        PlayerBarContentSmall(
+            status,
+            imageBitmap,
+            seekTo = { viewModel.seekTo(it) },
+            togglePauseAtEndOfMediaItems = { viewModel.togglePauseAtEndOfMediaItems() },
+            skipPrev = { viewModel.skipPrev() },
+            skipNext = { viewModel.skipNext() },
+            togglePlayPause = { viewModel.togglePlayPause() },
+            toggleShuffle = { viewModel.toggleShuffle() },
+            toggleRepeat = { viewModel.toggleRepeat() },
+            fallBackIcon = viewModel.getTrackIconFallback(status.currentTrackTitle),
+            togglePlaylist = togglePlaylist
+        )
+    } else {
+        PlayerBarContentBig (
+            status,
+            imageBitmap,
+            seekTo = { viewModel.seekTo(it) },
+            togglePauseAtEndOfMediaItems = { viewModel.togglePauseAtEndOfMediaItems() },
+            skipPrev = { viewModel.skipPrev() },
+            skipNext = { viewModel.skipNext() },
+            togglePlayPause = { viewModel.togglePlayPause() },
+            toggleShuffle = { viewModel.toggleShuffle() },
+            toggleRepeat = { viewModel.toggleRepeat() },
+            fallBackIcon = viewModel.getTrackIconFallback(status.currentTrackTitle),
+            togglePlaylist = togglePlaylist
+        )
+    }
 }
 
 @Composable
-private fun PlayerBarContent(
+private fun PlayerBarContentSmall(
     status: PlayerStatus,
     imageBitmap: ImageBitmap?,
     fallBackIcon: ImageVector,
@@ -97,8 +120,8 @@ private fun PlayerBarContent(
     toggleShuffle: () -> Unit,
     toggleRepeat: () -> Unit,
     togglePlayPause: () -> Unit,
-
-    ) {
+    togglePlaylist: () -> Unit,
+) {
 
     Column(
         modifier = Modifier
@@ -106,157 +129,258 @@ private fun PlayerBarContent(
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(8.dp)
     ) {
-        if (status.duration > 0) {
-
-            Slider(
-                value = status.position.toFloat(),
-                onValueChange = { seekTo(it.toLong()) },
-                valueRange = 0f..status.duration.toFloat(),
-                modifier = Modifier.height(20.dp)
-            )
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(formatDuration(status.position), style = MaterialTheme.typography.labelSmall)
-                Text(formatDuration(status.duration), style = MaterialTheme.typography.labelSmall)
-            }
-        }
+        PlaybarSeekbar(status, seekTo)
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
+                .padding(top = 8.dp)
+                .clickable( onClick = { togglePlaylist() }),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val artworkModifier = Modifier
-                .size(68.dp)
-                .padding(end = 8.dp)
-                .background(
-                    Color.Gray.copy(alpha = 0.2f),
-                    RoundedCornerShape(8.dp)
-                )
-
-            if (imageBitmap != null) {
-                Image(
-                    bitmap = imageBitmap,
-                    contentDescription = stringResource(R.string.cover_art),
-                    modifier = artworkModifier,
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Icon(
-                    fallBackIcon,
-                    contentDescription = stringResource(R.string.music_note),
-                    modifier = artworkModifier.padding(8.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Column(
-                Modifier.weight(1f)
-            ) {
-                Text(
-                    text = status.currentTrackTitle.ifEmpty { stringResource(R.string.no_title) },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                )
-                if (status.currentTrackArtist != null) {
-                    Text(
-                        text = status.currentTrackArtist,
-                        maxLines = 1,
-                        overflow = TextOverflow.Clip,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    )
-                }
-            }
+            PlaybarArtwork(
+                imageBitmap = imageBitmap,
+                fallBackIcon = fallBackIcon,
+                modifier = Modifier
+                    .size(68.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            PlaybarCurrentTrackInfo(status)
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
+        PlaybarButtons(
+            skipPrev,
+            togglePlayPause,
+            status,
+            skipNext,
+            togglePauseAtEndOfMediaItems,
+            toggleShuffle,
+            toggleRepeat
+        )
+    }
+}
+
+
+@Composable
+private fun PlayerBarContentBig(
+    status: PlayerStatus,
+    imageBitmap: ImageBitmap?,
+    fallBackIcon: ImageVector,
+    seekTo: (Long) -> Unit,
+    togglePauseAtEndOfMediaItems: () -> Unit,
+    skipPrev: () -> Unit,
+    skipNext: () -> Unit,
+    toggleShuffle: () -> Unit,
+    toggleRepeat: () -> Unit,
+    togglePlayPause: () -> Unit,
+    togglePlaylist: () -> Unit,
+) {
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(8.dp)
+
+    ) {
+        PlaybarSeekbar(status, seekTo)
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .weight(1f)
+                .clickable( onClick = { togglePlaylist() }),
         ) {
-
-            IconButton(onClick = { skipPrev() }) {
-                Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.previous))
-            }
-
-            IconButton(
-                onClick = { togglePlayPause() },
+            PlaybarArtwork(
+                imageBitmap = imageBitmap,
+                fallBackIcon = fallBackIcon,
                 modifier = Modifier
-                    .size(48.dp)
-                    .background(MaterialTheme.colorScheme.primary, shape = CircleShape)
-            ) {
-                Icon(
-                    if (status.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = stringResource(R.string.play_pause),
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
+                    .weight(1f)
+            )
 
-            IconButton(onClick = { skipNext() }) {
-                Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.next))
-            }
+            Spacer(Modifier.height(8.dp))
 
-            VerticalDivider(Modifier.height(18.dp))
+            PlaybarCurrentTrackInfo(status, Alignment.CenterHorizontally)
+        }
+        PlaybarButtons(
+            skipPrev,
+            togglePlayPause,
+            status,
+            skipNext,
+            togglePauseAtEndOfMediaItems,
+            toggleShuffle,
+            toggleRepeat
+        )
+    }
+}
 
-            IconButton(onClick = { togglePauseAtEndOfMediaItems() }) {
-                Icon(
-                    Icons.Default.PlayDisabled,
-                    contentDescription = stringResource(R.string.pause_after_current_item),
-                    tint = if (status.pauseAtEndOfMediaItems) MaterialTheme.colorScheme.error else LocalContentColor.current
-                )
-            }
+@Composable
+private fun PlaybarArtwork(
+    imageBitmap: ImageBitmap?,
+    fallBackIcon: ImageVector,
+    modifier: Modifier
+) {
+    val artworkModifier = modifier
+        .fillMaxWidth()
 
-            IconButton(onClick = { toggleShuffle() }) {
-                Icon(
-                    Icons.Default.Shuffle,
-                    contentDescription = stringResource(R.string.shuffle),
-                    tint = if (status.shuffleMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                )
-            }
+    if (imageBitmap != null) {
+        Image(
+            bitmap = imageBitmap,
+            contentDescription = stringResource(R.string.cover_art),
+            modifier = artworkModifier,
+            contentScale = ContentScale.Inside
+        )
+    } else {
+        Icon(
+            fallBackIcon,
+            contentDescription = stringResource(R.string.music_note),
+            modifier = artworkModifier.padding(8.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
 
-            IconButton(onClick = { toggleRepeat() }) {
-                val icon = when (status.repeatMode) {
-                    Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne
-                    else -> Icons.Default.Repeat
-                }
-                Icon(
-                    icon,
-                    contentDescription = stringResource(R.string.repeat),
-                    tint = if (status.repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else LocalContentColor.current
-                )
-            }
+
+@Composable
+private fun PlaybarCurrentTrackInfo(
+    status: PlayerStatus,
+    alignment: Alignment.Horizontal = Alignment.Start
+) {
+    Column(
+        horizontalAlignment = alignment
+    ) {
+        Text(
+            text = status.currentTrackTitle.ifEmpty { stringResource(R.string.no_title) },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier
+                .padding(bottom = 8.dp)
+        )
+        if (status.currentTrackArtist != null) {
+            Text(
+                text = status.currentTrackArtist,
+                maxLines = 1,
+                overflow = TextOverflow.Clip,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier
+            )
         }
     }
 }
 
+@Composable
+private fun PlaybarSeekbar(
+    status: PlayerStatus,
+    seekTo: (Long) -> Unit
+) {
+    Slider(
+        value = status.position.toFloat(),
+        onValueChange = { seekTo(it.toLong()) },
+        valueRange = 0f..status.duration.toFloat(),
+        modifier = Modifier.height(20.dp)
+    )
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(formatDuration(status.position), style = MaterialTheme.typography.labelSmall)
+        Text(formatDuration(status.duration), style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Composable
+private fun PlaybarButtons(
+    skipPrev: () -> Unit,
+    togglePlayPause: () -> Unit,
+    status: PlayerStatus,
+    skipNext: () -> Unit,
+    togglePauseAtEndOfMediaItems: () -> Unit,
+    toggleShuffle: () -> Unit,
+    toggleRepeat: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        IconButton(onClick = { skipPrev() }) {
+            Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.previous))
+        }
+
+        IconButton(
+            onClick = { togglePlayPause() },
+            modifier = Modifier
+                .size(48.dp)
+                .background(MaterialTheme.colorScheme.primary, shape = CircleShape)
+        ) {
+            Icon(
+                if (status.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = stringResource(R.string.play_pause),
+                tint = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+
+        IconButton(onClick = { skipNext() }) {
+            Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.next))
+        }
+
+        VerticalDivider(Modifier.height(18.dp))
+
+        IconButton(onClick = { togglePauseAtEndOfMediaItems() }) {
+            Icon(
+                Icons.Default.PlayDisabled,
+                contentDescription = stringResource(R.string.pause_after_current_item),
+                tint = if (status.pauseAtEndOfMediaItems) MaterialTheme.colorScheme.error else LocalContentColor.current
+            )
+        }
+
+        IconButton(onClick = { toggleShuffle() }) {
+            Icon(
+                Icons.Default.Shuffle,
+                contentDescription = stringResource(R.string.shuffle),
+                tint = if (status.shuffleMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
+            )
+        }
+
+        IconButton(onClick = { toggleRepeat() }) {
+            val icon = when (status.repeatMode) {
+                Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne
+                else -> Icons.Default.Repeat
+            }
+            Icon(
+                icon,
+                contentDescription = stringResource(R.string.repeat),
+                tint = if (status.repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else LocalContentColor.current
+            )
+        }
+    }
+}
+
+val sampleStatus = PlayerStatus(
+    currentTrackTitle = "Test title",
+    currentTrackArtist = "Artist",
+    currentArtworkBytes = null,
+    duration = 120000,
+    position = 60000,
+    isPlaying = true,
+    shuffleMode = false,
+    repeatMode = Player.REPEAT_MODE_OFF,
+    playlist = emptyList(),
+    currentIndex = 0,
+    pauseAtEndOfMediaItems = false
+
+)
 @Preview
 @Composable
-private fun PlayerBarContentPreview() {
+private fun PlayerBarContentSmallPreview() {
 
     Surface() {
-        PlayerBarContent(
-            status = PlayerStatus(
-                currentTrackTitle = "Test title",
-                currentTrackArtist = "Artist",
-                currentArtworkBytes = null,
-                duration = 120000,
-                position = 60000,
-                isPlaying = true,
-                shuffleMode = false,
-                repeatMode = Player.REPEAT_MODE_OFF,
-                playlist = emptyList(),
-                currentIndex = 0,
-                pauseAtEndOfMediaItems = false
-
-            ),
+        PlayerBarContentSmall(
+            status = sampleStatus,
             imageBitmap = null,
             fallBackIcon = Icons.Default.MusicNote,
             seekTo = {},
@@ -265,7 +389,30 @@ private fun PlayerBarContentPreview() {
             skipNext = {},
             toggleShuffle = {},
             toggleRepeat = {},
-            togglePlayPause = {}
+            togglePlayPause = {},
+            togglePlaylist = {}
+        )
+    }
+
+}
+
+@Preview
+@Composable
+private fun PlayerBarContentBigPreview() {
+
+    Surface(Modifier.height(400.dp).width(500.dp)) {
+        PlayerBarContentBig(
+            status = sampleStatus,
+            imageBitmap = null,
+            fallBackIcon = Icons.Default.MusicNote,
+            seekTo = {},
+            togglePauseAtEndOfMediaItems = {},
+            skipPrev = {},
+            skipNext = {},
+            toggleShuffle = {},
+            toggleRepeat = {},
+            togglePlayPause = {},
+            togglePlaylist = {},
         )
     }
 
