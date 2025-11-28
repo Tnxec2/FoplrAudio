@@ -24,4 +24,5 @@
     <string name="unknown_folder">Unknown Folder</string>
     <string name="unknown">Unknown</string>
     <string name="no_audio_files_found">No audio files found</string>
+    <string name="notification_channel_name">notification channel name</string>
 </resources>
