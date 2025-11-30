@@ -41,35 +41,58 @@ fun FolderListScreen(
     } else {
         LazyColumn {
             items(folders) { folder ->
-                var expanded by remember { mutableStateOf(false) }
-
-                ListItem(
-                    headlineContent = { Text(folder.name) },
-                    leadingContent = { Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                    modifier = Modifier.clickable { onFolderClick(folder.uriString, folder.name) },
-                    trailingContent = {
-                        Box {
-                            IconButton(onClick = { expanded = true }) {
-                                Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.options))
-                            }
-                            DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    leadingIcon = { Icon(Icons.Filled.FolderDelete, contentDescription = stringResource(R.string.remove)) },
-                                    text = { Text(stringResource(R.string.remove)) },
-                                    onClick = {
-                                        expanded = false
-                                        onRemoveFolder(folder)
-                                    }
-                                )
-                            }
-                        }
-                    }
-                )
+                FolderListItem(folder, onFolderClick, onRemoveFolder)
                 HorizontalDivider()
             }
         }
     }
+}
+
+@Composable
+private fun FolderListItem(
+    folder: MediaPlace,
+    onFolderClick: (String, String) -> Unit,
+    onRemoveFolder: (MediaPlace) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ListItem(
+        headlineContent = { Text(folder.name) },
+        leadingContent = {
+            Icon(
+                Icons.Default.Folder,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        modifier = Modifier.clickable { onFolderClick(folder.uriString, folder.name) },
+        trailingContent = {
+            Box {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.options)
+                    )
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    DropdownMenuItem(
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.FolderDelete,
+                                contentDescription = stringResource(R.string.remove)
+                            )
+                        },
+                        text = { Text(stringResource(R.string.remove)) },
+                        onClick = {
+                            expanded = false
+                            onRemoveFolder(folder)
+                        }
+                    )
+                }
+            }
+        }
+    )
 }
