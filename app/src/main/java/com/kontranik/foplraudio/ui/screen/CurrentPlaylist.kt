@@ -92,75 +92,88 @@ fun CurrentPlaylist(
                 modifier = Modifier.weight(1f, fill = false)
             ) {
                 itemsIndexed(status.playlist) { index, item ->
-                    val isCurrent = index == status.currentIndex
-                    val backgroundColor =
-                        if (isCurrent) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(backgroundColor)
-                            .clickable { onPlayItem(index) }
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (isCurrent) {
-                            Icon(
-                                Icons.Default.PlayArrow,
-                                contentDescription = stringResource( R.string.playing),
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                        }
-                        val artworkModifier = Modifier
-                            .size(40.dp)
-                            .padding(end = 8.dp)
-                            .background(Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                        val bitmap = item.mediaMetadata.artworkData?.let {BitmapFactory.decodeByteArray(it, 0, it.size) }?.asImageBitmap()
-                        if (bitmap != null) {
-                            Image(
-                                bitmap = bitmap,
-                                contentDescription = stringResource(R.string.cover_art),
-                                modifier = artworkModifier,
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Icon(
-                                Icons.Default.MusicNote,
-                                contentDescription = stringResource(R.string.music_note),
-                                modifier = artworkModifier.padding(8.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = item.mediaMetadata.title.toString(),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                            )
-                            if (item.mediaMetadata.artist != null)
-                                Text(
-                                    text = item.mediaMetadata.artist.toString(),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                        }
-
-                        IconButton(onClick = { onRemoveItem(index) }) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = stringResource(R.string.remove),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
+                    PlaylistItem(index, status, onPlayItem, item, onRemoveItem)
                     HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PlaylistItem(
+    index: Int,
+    status: PlayerStatus,
+    onPlayItem: (Int) -> Unit,
+    item: MediaItem,
+    onRemoveItem: (Int) -> Unit
+) {
+    val isCurrent = index == status.currentIndex
+    val backgroundColor =
+        if (isCurrent) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(backgroundColor)
+            .clickable { onPlayItem(index) }
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (isCurrent) {
+            Icon(
+                Icons.Default.PlayArrow,
+                contentDescription = stringResource(R.string.playing),
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+        val artworkModifier = Modifier
+            .size(40.dp)
+            .padding(end = 8.dp)
+            .background(Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+        val bitmap =
+            item.mediaMetadata.artworkData?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+                ?.asImageBitmap()
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap,
+                contentDescription = stringResource(R.string.cover_art),
+                modifier = artworkModifier,
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Icon(
+                Icons.Default.MusicNote,
+                contentDescription = stringResource(R.string.music_note),
+                modifier = artworkModifier.padding(8.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = item.mediaMetadata.title.toString(),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+            )
+            if (item.mediaMetadata.artist != null)
+                Text(
+                    text = item.mediaMetadata.artist.toString(),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodySmall
+                )
+        }
+
+        IconButton(onClick = { onRemoveItem(index) }) {
+            Icon(
+                Icons.Default.Close,
+                contentDescription = stringResource(R.string.remove),
+                tint = MaterialTheme.colorScheme.error
+            )
         }
     }
 }
