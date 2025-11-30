@@ -55,8 +55,8 @@ class PlayerViewModel(
     private val _playerStatus = MutableStateFlow(PlayerStatus())
     val playerStatus = _playerStatus.asStateFlow()
 
-    private val _showPlaylist = MutableStateFlow<Boolean>(false)
-    val showPlayList = _showPlaylist.asStateFlow()
+    private val _showPlayList = MutableStateFlow<Boolean>(false)
+    val showPlayList = _showPlayList.asStateFlow()
 
     private val _mediaPlaces = MutableStateFlow<List<MediaPlace>>(emptyList())
     val mediaPlaces = _mediaPlaces.asStateFlow()
@@ -295,6 +295,10 @@ class PlayerViewModel(
     }
 
     fun navigateBack(context: Context) {
+        if (_showPlayList.value) {
+            _showPlayList.value = false
+            return
+        }
         val stack = _currentPathStack.value
         if (stack.isNotEmpty()) {
             val newStack = stack.dropLast(1)
@@ -406,7 +410,7 @@ class PlayerViewModel(
     }
 
     fun togglePlaylistShow() {
-        _showPlaylist.value = !_showPlaylist.value
+        _showPlayList.value = !_showPlayList.value
     }
 
     // --- Player Controls (über Controller) ---
