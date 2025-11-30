@@ -28,9 +28,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -43,11 +40,11 @@ import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.FileItem
 import com.kontranik.foplraudio.model.MediaPlace
 import com.kontranik.foplraudio.model.PlayerStatus
+import com.kontranik.foplraudio.ui.player.PlayerBar
+import com.kontranik.foplraudio.ui.player.PlayerViewModel
 import com.kontranik.foplraudio.ui.screen.CurrentPlaylist
 import com.kontranik.foplraudio.ui.screen.FileBrowserScreen
 import com.kontranik.foplraudio.ui.screen.FolderListScreen
-import com.kontranik.foplraudio.ui.player.PlayerBar
-import com.kontranik.foplraudio.ui.player.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.P)
@@ -70,8 +67,8 @@ fun AudioPlayerApp() {
 
     val status by viewModel.playerStatus.collectAsState()
 
+    val showPlaylist by viewModel.showPlayList.collectAsState()
 
-    var showPlaylist by remember { mutableStateOf(false) }
     val title = if (showPlaylist) {
         stringResource(R.string.current_playlist)
     } else if (currentPathStack.isEmpty()) {
@@ -84,7 +81,7 @@ fun AudioPlayerApp() {
         bottomBar = {
             if (!isLandscape) PlayerBar(
                 viewModel,
-                togglePlaylist = { showPlaylist = !showPlaylist })
+                togglePlaylist = { viewModel.togglePlaylistShow() })
         },
         modifier = Modifier.safeDrawingPadding()
     ) { innerPadding ->
@@ -94,7 +91,7 @@ fun AudioPlayerApp() {
             if (isLandscape) {
                 LandscapeLayout(
                     showPlaylist = showPlaylist,
-                    togglePlaylist = { showPlaylist = !showPlaylist },
+                    togglePlaylist = { viewModel.togglePlaylistShow() },
                     title = title,
                     folders = folders,
                     currentPathStack = currentPathStack,
@@ -123,13 +120,13 @@ fun AudioPlayerApp() {
                         PlayerBar(
                             viewModel,
                             stretchArt = true,
-                            togglePlaylist = { showPlaylist = !showPlaylist })
+                            togglePlaylist = { viewModel.togglePlaylistShow() })
                     }
                 )
             } else {
                 PortraitLayout(
                     showPlaylist = showPlaylist,
-                    togglePlaylist = { showPlaylist = !showPlaylist },
+                    togglePlaylist = { viewModel.togglePlaylistShow() },
                     title = title,
                     folders = folders,
                     currentPathStack = currentPathStack,

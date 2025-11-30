@@ -55,6 +55,9 @@ class PlayerViewModel(
     private val _playerStatus = MutableStateFlow(PlayerStatus())
     val playerStatus = _playerStatus.asStateFlow()
 
+    private val _showPlaylist = MutableStateFlow<Boolean>(false)
+    val showPlayList = _showPlaylist.asStateFlow()
+
     private val _mediaPlaces = MutableStateFlow<List<MediaPlace>>(emptyList())
     val mediaPlaces = _mediaPlaces.asStateFlow()
 
@@ -151,10 +154,12 @@ class PlayerViewModel(
             controller.repeatMode = _playerStatus.value.repeatMode
             setPauseAtEndOfMediaItems(_playerStatus.value.pauseAtEndOfMediaItems)
 
-            val lastPlaylist = storageManager.loadLastPlaylist()
-            if (lastPlaylist.playlist.isNotEmpty()) {
-                controller.setMediaItems(lastPlaylist.playlist, lastPlaylist.currentIndex, 0L)
-                controller.prepare()
+            if (controller.mediaItemCount == 0) {
+                val lastPlaylist = storageManager.loadLastPlaylist()
+                if (lastPlaylist.playlist.isNotEmpty()) {
+                    controller.setMediaItems(lastPlaylist.playlist, lastPlaylist.currentIndex, 0L)
+                    controller.prepare()
+                }
             } else {
                 updatePlaylistState()
             }
@@ -172,10 +177,11 @@ class PlayerViewModel(
             currentTrackArtist = artist,
             currentArtworkBytes = artworkBytes,
             duration = playerController?.duration?.coerceAtLeast(0L) ?: 0L,
-            position = 0L,
+            position = playerController?.currentPosition?.coerceAtLeast(0L) ?: 0L,
             currentIndex = playerController?.currentMediaItemIndex ?: -1
         )
     }
+
 
     fun getTrackIconFallback(title: String): ImageVector {
         val lowerTitle = title.lowercase()
@@ -209,7 +215,6 @@ class PlayerViewModel(
                     currentIndex = controller.currentMediaItemIndex
                 )
                 storageManager.savePlaylist(items)
-
             }
             storageManager.savePlaylistCurrentIndex(controller.currentMediaItemIndex)
         } ?: run {
@@ -400,6 +405,9 @@ class PlayerViewModel(
         return audioFiles
     }
 
+    fun togglePlaylistShow() {
+        _showPlaylist.value = !_showPlaylist.value
+    }
 
     // --- Player Controls (über Controller) ---
 
