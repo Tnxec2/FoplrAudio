@@ -32,7 +32,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,96 +67,131 @@ fun FileBrowserScreen(
 
         LazyColumn(modifier = Modifier.weight(1f)) {
             items(files) { file ->
-                var expanded by remember { mutableStateOf(false) }
-                val metadata = rememberMetadata(file)
 
-                ListItem(
-                    headlineContent = {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                metadata?.title ?: file.name,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            if (!file.isDirectory) {
-                                metadata?.artist?.let { artist ->
-                                    Text(
-                                        artist,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                                if (file.name != (metadata?.title ?: file.name)) {
-                                    Text(
-                                        file.name,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
-                            }
-                        }
-                    },
-                    leadingContent = {
-                        metadata?.bitmap?.let {
-                            Image(
-                                bitmap = it,
-                                contentDescription = stringResource(R.string.cover_art),
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(4.dp)),
-                                contentScale = ContentScale.Crop
-                            )
-                        } ?:
-                            if (file.isDirectory)
-                                Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
-                            else
-                                Icon(Icons.Default.AudioFile, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
-
-                    },
-                    modifier = Modifier.clickable {
-                        if (file.isDirectory) {
-                            onFileClick(file)
-                        } else {
-                            onFileClick(file)
-                        }
-                    },
-                    trailingContent = {
-                        if (file.isDirectory) {
-                            Box {
-                                IconButton(onClick = { expanded = true }) {
-                                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(
-                                        R.string.options
-                                    ))
-                                }
-                                DropdownMenu(
-                                    expanded = expanded,
-                                    onDismissRequest = { expanded = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
-                                        text = { Text(stringResource(R.string.play_folder)) },
-                                        onClick = {
-                                            expanded = false
-                                            onContextPlayFolder(file.uri)
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null) },
-                                        text = { Text(stringResource(R.string.add_folder_to_playlist)) },
-                                        onClick = {
-                                            expanded = false
-                                            onContextAddToPlayFolder(file.uri)
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
+                FileListItem(
+                    file,
+                    onFileClick,
+                    onContextPlayFolder,
+                    onContextAddToPlayFolder
                 )
                 HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
             }
         }
     }
+}
+
+@Composable
+private fun FileListItem(
+    file: FileItem,
+    onFileClick: (FileItem) -> Unit,
+    onContextPlayFolder: (Uri) -> Unit,
+    onContextAddToPlayFolder: (Uri) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val metadata = rememberMetadata(file)
+
+    ListItem(
+        headlineContent = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    metadata?.title ?: file.name,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (!file.isDirectory) {
+                    metadata?.artist?.let { artist ->
+                        Text(
+                            artist,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    if (file.name != (metadata?.title ?: file.name)) {
+                        Text(
+                            file.name,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+            }
+        },
+        leadingContent = {
+            metadata?.bitmap?.let {
+                Image(
+                    bitmap = it,
+                    contentDescription = stringResource(R.string.cover_art),
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } ?: if (file.isDirectory)
+                Icon(
+                    Icons.Default.Folder,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+            else
+                Icon(
+                    Icons.Default.AudioFile,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary
+                )
+
+        },
+        modifier = Modifier.clickable {
+            if (file.isDirectory) {
+                onFileClick(file)
+            } else {
+                onFileClick(file)
+            }
+        },
+        trailingContent = {
+            if (file.isDirectory) {
+                Box {
+                    IconButton(onClick = { expanded = true }) {
+                        Icon(
+                            Icons.Default.MoreVert, contentDescription = stringResource(
+                                R.string.options
+                            )
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.PlayArrow,
+                                    contentDescription = null
+                                )
+                            },
+                            text = { Text(stringResource(R.string.play_folder)) },
+                            onClick = {
+                                expanded = false
+                                onContextPlayFolder(file.uri)
+                            }
+                        )
+                        DropdownMenuItem(
+                            leadingIcon = {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.PlaylistAdd,
+                                    contentDescription = null
+                                )
+                            },
+                            text = { Text(stringResource(R.string.add_folder_to_playlist)) },
+                            onClick = {
+                                expanded = false
+                                onContextAddToPlayFolder(file.uri)
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    )
 }
