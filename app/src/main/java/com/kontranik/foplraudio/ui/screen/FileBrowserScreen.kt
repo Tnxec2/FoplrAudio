@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -74,12 +75,12 @@ fun FileBrowserScreen(
                     headlineContent = {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
-                                metadata.value?.title ?: file.name,
+                                metadata?.title ?: file.name,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             if (!file.isDirectory) {
-                                metadata.value?.artist?.let { artist ->
+                                metadata?.artist?.let { artist ->
                                     Text(
                                         artist,
                                         maxLines = 1,
@@ -87,7 +88,7 @@ fun FileBrowserScreen(
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                 }
-                                if (file.name != (metadata.value?.title ?: file.name)) {
+                                if (file.name != (metadata?.title ?: file.name)) {
                                     Text(
                                         file.name,
                                         maxLines = 1,
@@ -99,7 +100,7 @@ fun FileBrowserScreen(
                         }
                     },
                     leadingContent = {
-                        metadata.value?.bitmap?.let {
+                        metadata?.bitmap?.let {
                             Image(
                                 bitmap = it,
                                 contentDescription = stringResource(R.string.cover_art),
