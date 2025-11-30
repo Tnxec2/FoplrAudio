@@ -1,4 +1,4 @@
-package com.kontranik.foplraudio.player
+package com.kontranik.foplraudio.ui.screen
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.HorizontalDivider
@@ -41,8 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.PlayerStatus
 
@@ -169,34 +168,7 @@ fun CurrentPlaylist(
 @Preview(showBackground = true)
 @Composable
 private fun CurrentPlaylistPreview() {
-    val mediaItem1 = MediaItem.Builder()
-        .setMediaMetadata(
-            androidx.media3.common.MediaMetadata.Builder()
-                .setTitle("The First Song Title")
-                .setArtist("Artist One")
-                .build()
-        )
-        .build()
-
-    val mediaItem2 = MediaItem.Builder()
-        .setMediaMetadata(
-            androidx.media3.common.MediaMetadata.Builder()
-                .setTitle("A Much Longer Song Title That Will Definitely Overflow The Available Space")
-                .setArtist("Artist Two")
-                .build()
-        )
-        .build()
-
-    val mediaItem3 = MediaItem.Builder()
-        .setMediaMetadata(
-            androidx.media3.common.MediaMetadata.Builder()
-                .setTitle("The Third Song")
-                .setArtist("Artist Three")
-                .build()
-        )
-        .build()
-
-    val playlist = listOf(mediaItem1, mediaItem2, mediaItem3)
+    val playlist = samplePlaylist()
     val status = PlayerStatus(
         playlist = playlist,
         currentIndex = 1,
@@ -210,6 +182,39 @@ private fun CurrentPlaylistPreview() {
             onRemoveItem = {}
         )
     }
+}
+
+@Composable
+private fun samplePlaylist(): List<MediaItem> {
+    val mediaItem1 = MediaItem.Builder()
+        .setMediaMetadata(
+            MediaMetadata.Builder()
+                .setTitle("The First Song Title")
+                .setArtist("Artist One")
+                .build()
+        )
+        .build()
+
+    val mediaItem2 = MediaItem.Builder()
+        .setMediaMetadata(
+            MediaMetadata.Builder()
+                .setTitle("A Much Longer Song Title That Will Definitely Overflow The Available Space")
+                .setArtist("Artist Two")
+                .build()
+        )
+        .build()
+
+    val mediaItem3 = MediaItem.Builder()
+        .setMediaMetadata(
+            MediaMetadata.Builder()
+                .setTitle("The Third Song")
+                .setArtist("Artist Three")
+                .build()
+        )
+        .build()
+
+    val playlist = listOf(mediaItem1, mediaItem2, mediaItem3)
+    return playlist
 }
 
 @Preview(showBackground = true)

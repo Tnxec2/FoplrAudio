@@ -1,4 +1,4 @@
-package com.kontranik.foplraudio.player.helpers
+package com.kontranik.foplraudio.ui.player.helpers
 
 import java.util.concurrent.TimeUnit
 

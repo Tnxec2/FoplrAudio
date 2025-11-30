@@ -1,4 +1,4 @@
-package com.kontranik.foplraudio.player
+package com.kontranik.foplraudio.ui.player
 
 import android.Manifest
 import com.kontranik.foplraudio.R

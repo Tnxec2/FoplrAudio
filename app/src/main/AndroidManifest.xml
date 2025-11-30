@@ -18,7 +18,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FoplrAudio">
         <service
-            android:name=".player.PlaybackService"
+            android:name=".ui.player.PlaybackService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true"
             >

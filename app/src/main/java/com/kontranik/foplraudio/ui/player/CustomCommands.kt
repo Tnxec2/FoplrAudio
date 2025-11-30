@@ -1,4 +1,4 @@
-package com.kontranik.foplraudio.player
+package com.kontranik.foplraudio.ui.player
 
 import android.os.Bundle
 import androidx.media3.session.SessionCommand

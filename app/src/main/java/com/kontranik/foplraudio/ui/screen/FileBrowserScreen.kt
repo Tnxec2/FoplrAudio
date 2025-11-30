@@ -1,4 +1,4 @@
-package com.kontranik.foplraudio.player
+package com.kontranik.foplraudio.ui.screen
 
 import android.net.Uri
 import androidx.compose.foundation.Image
@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -37,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -106,7 +106,7 @@ fun FileBrowserScreen(
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clip(RoundedCornerShape(4.dp)),
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                contentScale = ContentScale.Crop
                             )
                         } ?:
                             if (file.isDirectory)

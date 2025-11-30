@@ -1,19 +1,17 @@
-package com.kontranik.foplraudio.player
+package com.kontranik.foplraudio.ui
 
 
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.icons.Icons
@@ -21,7 +19,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,19 +26,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kontranik.foplraudio.AppViewModelProvider
@@ -49,6 +43,11 @@ import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.FileItem
 import com.kontranik.foplraudio.model.MediaPlace
 import com.kontranik.foplraudio.model.PlayerStatus
+import com.kontranik.foplraudio.ui.screen.CurrentPlaylist
+import com.kontranik.foplraudio.ui.screen.FileBrowserScreen
+import com.kontranik.foplraudio.ui.screen.FolderListScreen
+import com.kontranik.foplraudio.ui.player.PlayerBar
+import com.kontranik.foplraudio.ui.player.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.P)
@@ -83,7 +82,9 @@ fun AudioPlayerApp() {
 
     Scaffold(
         bottomBar = {
-            if (!isLandscape) PlayerBar(viewModel, togglePlaylist = { showPlaylist = !showPlaylist})
+            if (!isLandscape) PlayerBar(
+                viewModel,
+                togglePlaylist = { showPlaylist = !showPlaylist })
         },
         modifier = Modifier.safeDrawingPadding()
     ) { innerPadding ->
@@ -119,7 +120,10 @@ fun AudioPlayerApp() {
                         viewModel.addFolderRecursive(context, it)
                     },
                     playerBar = {
-                        PlayerBar(viewModel, stretchArt = true, togglePlaylist = { showPlaylist = !showPlaylist})
+                        PlayerBar(
+                            viewModel,
+                            stretchArt = true,
+                            togglePlaylist = { showPlaylist = !showPlaylist })
                     }
                 )
             } else {
@@ -155,7 +159,7 @@ fun AudioPlayerApp() {
         }
     }
 
-    androidx.activity.compose.BackHandler(enabled = currentPathStack.isNotEmpty()) {
+    BackHandler(enabled = currentPathStack.isNotEmpty()) {
         viewModel.navigateBack(context)
     }
 }

@@ -1,4 +1,4 @@
-package com.kontranik.foplraudio.player
+package com.kontranik.foplraudio.ui.screen
 
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
@@ -8,8 +8,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.AudioTrack
 import com.kontranik.foplraudio.model.FileItem
 

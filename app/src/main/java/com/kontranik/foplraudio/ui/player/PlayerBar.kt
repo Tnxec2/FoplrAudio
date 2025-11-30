@@ -1,7 +1,6 @@
-package com.kontranik.foplraudio.player
+package com.kontranik.foplraudio.ui.player
 
 import android.graphics.BitmapFactory
-import android.icu.number.IntegerWidth
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
@@ -10,7 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
@@ -43,7 +40,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -55,7 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.PlayerStatus
-import com.kontranik.foplraudio.player.helpers.formatDuration
+import com.kontranik.foplraudio.ui.player.helpers.formatDuration
 
 
 @RequiresApi(Build.VERSION_CODES.P)

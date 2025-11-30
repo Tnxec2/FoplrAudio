@@ -1,4 +1,4 @@
-package com.kontranik.foplraudio.player
+package com.kontranik.foplraudio.ui.player
 
 import android.content.ComponentName
 import android.content.Context
@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.util.Log
 import android.webkit.MimeTypeMap
 import android.widget.Toast
+import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
@@ -43,7 +44,7 @@ import kotlinx.coroutines.withContext
 
 
 @RequiresApi(Build.VERSION_CODES.P)
-@androidx.annotation.OptIn(UnstableApi::class)
+@OptIn(UnstableApi::class)
 class PlayerViewModel(
     private val context: Context,
     private val storageManager: StorageManager) : ViewModel() {

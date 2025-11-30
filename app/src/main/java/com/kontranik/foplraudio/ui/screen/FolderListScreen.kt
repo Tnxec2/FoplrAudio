@@ -1,4 +1,4 @@
-package com.kontranik.foplraudio.player
+package com.kontranik.foplraudio.ui.screen
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -9,7 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.FolderDelete
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
