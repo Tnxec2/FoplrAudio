@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -59,7 +61,9 @@ import com.kontranik.foplraudio.ui.player.helpers.formatDuration
 fun PlayerBar(
     viewModel: PlayerViewModel,
     stretchArt: Boolean = false,
-    togglePlaylist: () -> Unit,
+    toggleMenu: () -> Unit,
+    clickPlayinfo: () -> Unit,
+    showPlaylist: Boolean = false,
 ) {
     val status by viewModel.playerStatus.collectAsState()
 
@@ -85,7 +89,9 @@ fun PlayerBar(
             toggleShuffle = { viewModel.toggleShuffle() },
             toggleRepeat = { viewModel.toggleRepeat() },
             fallBackIcon = viewModel.getTrackIconFallback(status.currentTrackTitle),
-            togglePlaylist = togglePlaylist
+            toggleMenu = toggleMenu,
+            showMenu = showPlaylist,
+            clickPlayinfo = clickPlayinfo,
         )
     } else {
         PlayerBarContentBig (
@@ -99,7 +105,9 @@ fun PlayerBar(
             toggleShuffle = { viewModel.toggleShuffle() },
             toggleRepeat = { viewModel.toggleRepeat() },
             fallBackIcon = viewModel.getTrackIconFallback(status.currentTrackTitle),
-            togglePlaylist = togglePlaylist
+            toggleMenu = toggleMenu,
+            showMenu = showPlaylist,
+            clickPlayinfo = clickPlayinfo,
         )
     }
 }
@@ -116,7 +124,9 @@ private fun PlayerBarContentSmall(
     toggleShuffle: () -> Unit,
     toggleRepeat: () -> Unit,
     togglePlayPause: () -> Unit,
-    togglePlaylist: () -> Unit,
+    toggleMenu: () -> Unit,
+    clickPlayinfo: () -> Unit,
+    showMenu: Boolean,
 ) {
 
     Column(
@@ -131,7 +141,7 @@ private fun PlayerBarContentSmall(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp)
-                .clickable( onClick = { togglePlaylist() }),
+                .clickable( onClick = { clickPlayinfo() }),
             verticalAlignment = Alignment.CenterVertically
         ) {
             PlaybarArtwork(
@@ -151,7 +161,9 @@ private fun PlayerBarContentSmall(
             skipNext,
             togglePauseAtEndOfMediaItems,
             toggleShuffle,
-            toggleRepeat
+            toggleRepeat,
+            toggleMenu = toggleMenu,
+            showMenu = showMenu
         )
     }
 }
@@ -169,8 +181,11 @@ private fun PlayerBarContentBig(
     toggleShuffle: () -> Unit,
     toggleRepeat: () -> Unit,
     togglePlayPause: () -> Unit,
-    togglePlaylist: () -> Unit,
-) {
+    toggleMenu: () -> Unit,
+    showMenu: Boolean,
+    clickPlayinfo: () -> Unit,
+
+    ) {
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -185,7 +200,7 @@ private fun PlayerBarContentBig(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .weight(1f)
-                .clickable( onClick = { togglePlaylist() }),
+                .clickable( onClick = { clickPlayinfo() }),
         ) {
             PlaybarArtwork(
                 imageBitmap = imageBitmap,
@@ -205,7 +220,10 @@ private fun PlayerBarContentBig(
             skipNext,
             togglePauseAtEndOfMediaItems,
             toggleShuffle,
-            toggleRepeat
+            toggleRepeat,
+            showMenu,
+            toggleMenu,
+
         )
     }
 }
@@ -293,7 +311,9 @@ private fun PlaybarButtons(
     skipNext: () -> Unit,
     togglePauseAtEndOfMediaItems: () -> Unit,
     toggleShuffle: () -> Unit,
-    toggleRepeat: () -> Unit
+    toggleRepeat: () -> Unit,
+    showMenu: Boolean,
+    toggleMenu: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -302,6 +322,12 @@ private fun PlaybarButtons(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
+
+        IconButton(onClick = { toggleMenu() }) {
+            Icon(
+                if (!showMenu) Icons.AutoMirrored.Filled.List else Icons.Default.Close,
+                contentDescription = stringResource(R.string.toggle_menu))
+        }
 
         IconButton(onClick = { skipPrev() }) {
             Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.previous))
@@ -386,7 +412,9 @@ private fun PlayerBarContentSmallPreview() {
             toggleShuffle = {},
             toggleRepeat = {},
             togglePlayPause = {},
-            togglePlaylist = {}
+            toggleMenu = {},
+            showMenu = false,
+            clickPlayinfo = {}
         )
     }
 
@@ -408,7 +436,9 @@ private fun PlayerBarContentBigPreview() {
             toggleShuffle = {},
             toggleRepeat = {},
             togglePlayPause = {},
-            togglePlaylist = {},
+            toggleMenu = {},
+            showMenu = false,
+            clickPlayinfo = {}
         )
     }
 

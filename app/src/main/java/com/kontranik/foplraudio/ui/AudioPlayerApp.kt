@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.icons.Icons
@@ -28,6 +29,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -78,14 +82,10 @@ fun AudioPlayerApp() {
     }
 
     Scaffold(
-        bottomBar = {
-            if (!isLandscape) PlayerBar(
-                viewModel,
-                togglePlaylist = { viewModel.togglePlaylistShow() })
-        },
-        modifier = Modifier.safeDrawingPadding()
+        modifier = Modifier
     ) { innerPadding ->
         Box(modifier = Modifier
+            .safeDrawingPadding()
             .padding(innerPadding)
             .fillMaxSize()) {
             if (isLandscape) {
@@ -116,12 +116,7 @@ fun AudioPlayerApp() {
                     addFolderRecursive = {
                         viewModel.addFolderRecursive(context, it)
                     },
-                    playerBar = {
-                        PlayerBar(
-                            viewModel,
-                            stretchArt = true,
-                            togglePlaylist = { viewModel.togglePlaylistShow() })
-                    }
+                    viewModel = viewModel
                 )
             } else {
                 PortraitLayout(
@@ -150,7 +145,8 @@ fun AudioPlayerApp() {
                     },
                     addFolderRecursive = {
                         viewModel.addFolderRecursive(context, it)
-                    }
+                    },
+                    viewModel = viewModel
                 )
             }
         }
@@ -161,6 +157,7 @@ fun AudioPlayerApp() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.P)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PortraitLayout(
@@ -180,11 +177,17 @@ fun PortraitLayout(
     addFolderRecursive: (Uri) -> Unit,
     playFile: (FileItem, List<FileItem>) -> Unit,
     removeFolder: (MediaPlace) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: PlayerViewModel
 ) {
+
+    var playbarFullScreen by rememberSaveable() {
+        mutableStateOf(false)
+    }
 
     Column(
         modifier = modifier
+            .fillMaxSize()
     ) {
         TopAppBar(
             title = {
@@ -221,58 +224,87 @@ fun PortraitLayout(
                         }
                     }
                 }
-                IconButton(onClick = { togglePlaylist() }) {
-                    Icon(
-                        if (!showPlaylist) Icons.AutoMirrored.Filled.List else Icons.Default.Close,
-                        contentDescription = stringResource(R.string.current_playlist))
-                }
+
             }
         )
 
-        if (showPlaylist) {
-            CurrentPlaylist(
-                status = status,
-                onPlayItem = { playQueueItem(it) },
-                onRemoveItem = { removeQueueItem(it) }
-            )
-        } else if (currentPathStack.isEmpty()) {
-            FolderListScreen(
-                folders = folders,
-                onFolderClick = { uriStr, name ->
-                    openFolder(uriStr.toUri(), name)
-                },
-                onRemoveFolder = { folder ->
-                    removeFolder(folder)
-                }
-            )
-        } else {
-            FileBrowserScreen(
-                files = currentFiles,
-                onFileClick = { file ->
-                    if (file.isDirectory) {
-                        openFolder(file.uri, file.name)
-                    } else {
-                        playFile(file, currentFiles)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            if (showPlaylist) {
+                CurrentPlaylist(
+                    status = status,
+                    onPlayItem = { playQueueItem(it) },
+                    onRemoveItem = { removeQueueItem(it) }
+                )
+            } else if (currentPathStack.isEmpty()) {
+                FolderListScreen(
+                    folders = folders,
+                    onFolderClick = { uriStr, name ->
+                        openFolder(uriStr.toUri(), name)
+                    },
+                    onRemoveFolder = { folder ->
+                        removeFolder(folder)
                     }
-                },
-                onContextPlayFolder = { folderUri ->
-                    playFolderRecursive(folderUri)
-                },
-                onContextAddToPlayFolder = { folderUri ->
-                    addFolderRecursive(folderUri)
-                },
-                onPlayAllRecursive = {
-                    val currentFolder = currentPathStack.lastOrNull()
-                    if (currentFolder != null) {
-                        playFolderRecursive(currentFolder.uri)
+                )
+            } else {
+                FileBrowserScreen(
+                    files = currentFiles,
+                    onFileClick = { file ->
+                        if (file.isDirectory) {
+                            openFolder(file.uri, file.name)
+                        } else {
+                            playFile(file, currentFiles)
+                        }
+                    },
+                    onContextPlayFolder = { folderUri ->
+                        playFolderRecursive(folderUri)
+                    },
+                    onContextAddToPlayFolder = { folderUri ->
+                        addFolderRecursive(folderUri)
+                    },
+                    onPlayAllRecursive = {
+                        val currentFolder = currentPathStack.lastOrNull()
+                        if (currentFolder != null) {
+                            playFolderRecursive(currentFolder.uri)
+                        }
                     }
-                }
+                )
+            }
+        }
+        if (!playbarFullScreen) {
+            Row(
+                Modifier.fillMaxWidth()
+            ) {
+                PlayerBar(
+                    viewModel,
+                    stretchArt = false,
+                    showPlaylist = showPlaylist,
+                    clickPlayinfo = { playbarFullScreen = !playbarFullScreen },
+                    toggleMenu = { togglePlaylist() }
+                )
+            }
+        }
+    }
+    if (playbarFullScreen) {
+        Row(
+            Modifier.fillMaxSize()
+        ) {
+            PlayerBar(
+                viewModel,
+                stretchArt = true,
+                showPlaylist = showPlaylist,
+                clickPlayinfo = { playbarFullScreen = !playbarFullScreen },
+                toggleMenu = { togglePlaylist() }
             )
         }
     }
 }
 
 
+@RequiresApi(Build.VERSION_CODES.P)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LandscapeLayout(
@@ -293,7 +325,7 @@ fun LandscapeLayout(
     playFile: (FileItem, List<FileItem>) -> Unit,
     removeFolder: (MediaPlace) -> Unit,
     modifier: Modifier = Modifier,
-    playerBar: @Composable () -> Unit
+    viewModel: PlayerViewModel
 ) {
 
     Row(
@@ -388,7 +420,13 @@ fun LandscapeLayout(
         Column(
             Modifier.weight(1f)
         ) {
-            playerBar()
+            PlayerBar(
+                viewModel,
+                stretchArt = true,
+                showPlaylist = showPlaylist,
+                toggleMenu = { viewModel.togglePlaylistShow() },
+                clickPlayinfo = { viewModel.togglePlaylistShow() },
+            )
         }
     }
 }
