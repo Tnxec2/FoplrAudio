@@ -82,12 +82,12 @@ fun AudioPlayerApp() {
     }
 
     Scaffold(
-        modifier = Modifier
-    ) { innerPadding ->
+     ) { innerPadding ->
         Box(modifier = Modifier
             .safeDrawingPadding()
-            .padding(innerPadding)
-            .fillMaxSize()) {
+            .fillMaxSize()
+            // .padding(innerPadding)
+        ) {
             if (isLandscape) {
                 LandscapeLayout(
                     showPlaylist = showPlaylist,
@@ -247,7 +247,8 @@ fun PortraitLayout(
                     },
                     onRemoveFolder = { folder ->
                         removeFolder(folder)
-                    }
+                    },
+                    onAddFolder = { addFolder() }
                 )
             } else {
                 FileBrowserScreen(
@@ -282,8 +283,13 @@ fun PortraitLayout(
                     viewModel,
                     stretchArt = false,
                     showPlaylist = showPlaylist,
-                    clickPlayinfo = { playbarFullScreen = !playbarFullScreen },
-                    toggleMenu = { togglePlaylist() }
+                    clickPlayinfo = {
+                        if (showPlaylist) togglePlaylist()
+                        playbarFullScreen = !playbarFullScreen
+                    },
+                    toggleMenu = {
+                        togglePlaylist()
+                    }
                 )
             }
         }
@@ -296,8 +302,13 @@ fun PortraitLayout(
                 viewModel,
                 stretchArt = true,
                 showPlaylist = showPlaylist,
-                clickPlayinfo = { playbarFullScreen = !playbarFullScreen },
-                toggleMenu = { togglePlaylist() }
+                clickPlayinfo = {
+                    playbarFullScreen = !playbarFullScreen
+                },
+                toggleMenu = {
+                    if (!showPlaylist) playbarFullScreen = false
+                    togglePlaylist()
+                }
             )
         }
     }
@@ -390,7 +401,8 @@ fun LandscapeLayout(
                     },
                     onRemoveFolder = { folder ->
                         removeFolder(folder)
-                    }
+                    },
+                    onAddFolder = { addFolder() },
                 )
             } else {
                 FileBrowserScreen(

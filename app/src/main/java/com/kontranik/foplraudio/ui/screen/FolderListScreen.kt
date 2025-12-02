@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,11 +33,18 @@ import com.kontranik.foplraudio.model.MediaPlace
 fun FolderListScreen(
     folders: List<MediaPlace>,
     onFolderClick: (String, String) -> Unit,
-    onRemoveFolder: (MediaPlace) -> Unit
+    onRemoveFolder: (MediaPlace) -> Unit,
+    onAddFolder: () -> Unit,
 ) {
     if (folders.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(stringResource(R.string.press_to_add_a_music_folder), style = MaterialTheme.typography.bodyLarge)
+            OutlinedButton(
+                onClick = {
+                    onAddFolder()
+                }
+            ) {
+                Text(stringResource(R.string.press_to_add_a_music_folder), style = MaterialTheme.typography.bodyLarge)
+            }
         }
     } else {
         LazyColumn {
