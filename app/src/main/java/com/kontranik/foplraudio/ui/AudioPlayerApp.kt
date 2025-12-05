@@ -284,8 +284,7 @@ fun PortraitLayout(
                     stretchArt = false,
                     showPlaylist = showPlaylist,
                     clickPlayinfo = {
-                        if (showPlaylist) togglePlaylist()
-                        playbarFullScreen = !playbarFullScreen
+                        playbarFullScreen = true
                     },
                     toggleMenu = {
                         togglePlaylist()
@@ -303,11 +302,10 @@ fun PortraitLayout(
                 stretchArt = true,
                 showPlaylist = showPlaylist,
                 clickPlayinfo = {
-                    playbarFullScreen = !playbarFullScreen
+                    playbarFullScreen = false
                 },
                 toggleMenu = {
-                    if (!showPlaylist) playbarFullScreen = false
-                    togglePlaylist()
+                    playbarFullScreen = false
                 }
             )
         }
