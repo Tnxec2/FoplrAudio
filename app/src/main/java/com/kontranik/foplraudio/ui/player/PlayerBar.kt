@@ -6,7 +6,9 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,11 +30,14 @@ import androidx.compose.material.icons.filled.RepeatOne
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -42,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -133,7 +139,7 @@ private fun PlayerBarContentSmall(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(8.dp)
+            .padding(16.dp)
     ) {
         PlaybarSeekbar(status, seekTo)
 
@@ -191,7 +197,7 @@ private fun PlayerBarContentBig(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(8.dp)
+            .padding(16.dp)
 
     ) {
         PlaybarSeekbar(status, seekTo)
@@ -283,16 +289,39 @@ private fun PlaybarCurrentTrackInfo(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlaybarSeekbar(
     status: PlayerStatus,
     seekTo: (Long) -> Unit
 ) {
+    val interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
+    val colors = SliderDefaults.colors()
+
+
     Slider(
         value = status.position.toFloat(),
         onValueChange = { seekTo(it.toLong()) },
         valueRange = 0f..status.duration.toFloat(),
-        modifier = Modifier.height(20.dp)
+        // modifier = Modifier.height(20.dp)
+        thumb = {
+            Box(
+                modifier = Modifier
+                    .padding(0.dp)
+                    .size(16.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+            )
+        },
+        track = { sliderState ->
+            SliderDefaults.Track(
+                colors = colors,
+                thumbTrackGapSize = 0.dp,
+                enabled = true,
+                sliderState = sliderState,
+                modifier = Modifier.height(4.dp)
+            )
+        },
+        modifier = Modifier.padding(0.dp)
     )
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
