@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LooksOne
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlayDisabled
@@ -65,7 +67,7 @@ fun PlaybarButtons(
 
         IconButton(onClick = { toggleMenu() }) {
             Icon(
-                if (!showMenu) Icons.AutoMirrored.Filled.List else Icons.Default.Close,
+                if (!showMenu) Icons.AutoMirrored.Filled.ListAlt else Icons.Default.Close,
                 contentDescription = stringResource(R.string.toggle_menu)
             )
         }
@@ -126,7 +128,7 @@ fun PlaybarButtons(
             modifier = if (status.repeatMode != Player.REPEAT_MODE_OFF) borderCircleModifier else Modifier
         ) {
             val icon = when (status.repeatMode) {
-                Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne
+                Player.REPEAT_MODE_ONE -> Icons.Default.LooksOne
                 else -> Icons.Default.Repeat
             }
             Icon(
