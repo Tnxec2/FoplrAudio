@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.PlayerStatus
+import com.kontranik.foplraudio.ui.theme.FoplrAudioTheme
 
 
 @RequiresApi(Build.VERSION_CODES.P)
@@ -255,46 +256,51 @@ val sampleStatus = PlayerStatus(
 @Composable
 private fun PlayerBarContentSmallPreview() {
 
-    Surface() {
-        PlayerBarContentSmall(
-            status = sampleStatus,
-            imageBitmap = null,
-            fallBackIcon = Icons.Default.MusicNote,
-            seekTo = {},
-            togglePauseAtEndOfMediaItems = {},
-            skipPrev = {},
-            skipNext = {},
-            toggleShuffle = {},
-            toggleRepeat = {},
-            togglePlayPause = {},
-            toggleMenu = {},
-            showMenu = false,
-            clickPlayinfo = {}
-        )
+    FoplrAudioTheme(
+        dynamicColor = false
+    ) {
+        Surface() {
+            PlayerBarContentSmall(
+                status = sampleStatus,
+                imageBitmap = null,
+                fallBackIcon = Icons.Default.MusicNote,
+                seekTo = {},
+                togglePauseAtEndOfMediaItems = {},
+                skipPrev = {},
+                skipNext = {},
+                toggleShuffle = {},
+                toggleRepeat = {},
+                togglePlayPause = {},
+                toggleMenu = {},
+                showMenu = false,
+                clickPlayinfo = {}
+            )
+        }
     }
-
 }
 
 @Preview
 @Composable
 private fun PlayerBarContentBigPreview() {
-
-    Surface(Modifier.height(400.dp).width(500.dp)) {
-        PlayerBarContentBig(
-            status = sampleStatus,
-            imageBitmap = null,
-            fallBackIcon = Icons.Default.MusicNote,
-            seekTo = {},
-            togglePauseAtEndOfMediaItems = {},
-            skipPrev = {},
-            skipNext = {},
-            toggleShuffle = {},
-            toggleRepeat = {},
-            togglePlayPause = {},
-            toggleMenu = {},
-            showMenu = false,
-            clickPlayinfo = {}
-        )
+    FoplrAudioTheme(
+        dynamicColor = false
+    ) {
+        Surface(Modifier.height(400.dp).width(500.dp)) {
+            PlayerBarContentBig(
+                status = sampleStatus,
+                imageBitmap = null,
+                fallBackIcon = Icons.Default.MusicNote,
+                seekTo = {},
+                togglePauseAtEndOfMediaItems = {},
+                skipPrev = {},
+                skipNext = {},
+                toggleShuffle = {},
+                toggleRepeat = {},
+                togglePlayPause = {},
+                toggleMenu = {},
+                showMenu = false,
+                clickPlayinfo = {}
+            )
+        }
     }
-
 }

@@ -230,7 +230,9 @@ val sampleFolderItem = FileItem(
 @Preview(showBackground = true)
 @Composable
 fun FileBrowserScreenPreview() {
-    FoplrAudioTheme() {
+    FoplrAudioTheme(
+        dynamicColor = false
+    ) {
         Surface() {
             FileBrowserScreen(
                 files = sampleFiles,
@@ -246,7 +248,7 @@ fun FileBrowserScreenPreview() {
 @Preview(showBackground = true)
 @Composable
 fun FileBrowserScreenEmptyPreview() {
-    FoplrAudioTheme() {
+    FoplrAudioTheme(dynamicColor = false) {
         Surface() {
             FileBrowserScreen(
                 files = emptyList(),
@@ -262,7 +264,7 @@ fun FileBrowserScreenEmptyPreview() {
 @Preview(showBackground = true, widthDp = 360)
 @Composable
 fun FileListItemAudioPreview() {
-    FoplrAudioTheme() {
+    FoplrAudioTheme(dynamicColor = false) {
         Surface() {
             Column {
                 FileListItem(
@@ -279,7 +281,7 @@ fun FileListItemAudioPreview() {
 @Preview(showBackground = true, widthDp = 360)
 @Composable
 fun FileListItemFolderPreview() {
-    FoplrAudioTheme() {
+    FoplrAudioTheme(dynamicColor = false) {
         Surface() {
             Column {
                 FileListItem(

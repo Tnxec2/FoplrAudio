@@ -24,6 +24,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,6 +45,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.PlayerStatus
+import com.kontranik.foplraudio.ui.theme.FoplrAudioTheme
 
 @Composable
 fun CurrentPlaylist(
@@ -188,12 +190,16 @@ private fun CurrentPlaylistPreview() {
         isPlaying = true
     )
 
-    MaterialTheme {
-        CurrentPlaylist(
-            status = status,
-            onPlayItem = {},
-            onRemoveItem = {}
-        )
+    FoplrAudioTheme(
+        dynamicColor = false
+    )  {
+        Surface() {
+            CurrentPlaylist(
+                status = status,
+                onPlayItem = {},
+                onRemoveItem = {}
+            )
+        }
     }
 }
 
@@ -233,11 +239,15 @@ private fun samplePlaylist(): List<MediaItem> {
 @Preview(showBackground = true)
 @Composable
 private fun CurrentPlaylistEmptyPreview() {
-    MaterialTheme {
-        CurrentPlaylist(
-            status = PlayerStatus(playlist = emptyList()),
-            onPlayItem = {},
-            onRemoveItem = {}
-        )
+    FoplrAudioTheme(
+        dynamicColor = false
+    ) {
+        Surface() {
+            CurrentPlaylist(
+                status = PlayerStatus(playlist = emptyList()),
+                onPlayItem = {},
+                onRemoveItem = {}
+            )
+        }
     }
 }

@@ -139,7 +139,9 @@ fun PlaybarButtons(
 @Preview(showBackground = true)
 @Composable
 fun PlaybarButtonsPreview1() {
-    FoplrAudioTheme {
+    FoplrAudioTheme(
+        dynamicColor = false
+    )  {
         Surface() {
             PlaybarButtons(
                 status = PlayerStatus(
@@ -157,7 +159,9 @@ fun PlaybarButtonsPreview1() {
 @Preview(showBackground = true)
 @Composable
 fun PlaybarButtonsPreview2() {
-    FoplrAudioTheme {
+    FoplrAudioTheme(
+        dynamicColor = false
+    )  {
         Surface() {
             PlaybarButtons(
                 status = PlayerStatus(
@@ -176,7 +180,9 @@ fun PlaybarButtonsPreview2() {
 @Preview(showBackground = true)
 @Composable
 fun PlaybarButtonsPreview3() {
-    FoplrAudioTheme {
+    FoplrAudioTheme(
+        dynamicColor = false
+    )  {
         Surface() {
             PlaybarButtons(
                 status = PlayerStatus(

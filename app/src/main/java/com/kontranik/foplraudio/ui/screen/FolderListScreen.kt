@@ -117,7 +117,7 @@ fun FolderListScreenWithFoldersPreview() {
         MediaPlace(name = "Podcasts", uriString = "uri/podcasts"),
         MediaPlace(name = "Downloaded Tracks", uriString = "uri/downloads")
     )
-    FoplrAudioTheme { // Umschließen Sie die Vorschau mit Ihrem App-Theme
+    FoplrAudioTheme(darkTheme = false) { // Umschließen Sie die Vorschau mit Ihrem App-Theme
         Surface() {
             FolderListScreen(
                 folders = sampleFolders,
@@ -133,13 +133,15 @@ fun FolderListScreenWithFoldersPreview() {
 @Preview(showBackground = true)
 @Composable
 fun FolderListScreenEmptyPreview() {
-    FoplrAudioTheme {
-        FolderListScreen(
-            folders = emptyList(), // Leere Liste, um den "Hinzufügen"-Button zu zeigen
-            onFolderClick = { _, _ -> },
-            onRemoveFolder = {},
-            onAddFolder = {}
-        )
+    FoplrAudioTheme(dynamicColor = false) {
+        Surface() {
+            FolderListScreen(
+                folders = emptyList(), // Leere Liste, um den "Hinzufügen"-Button zu zeigen
+                onFolderClick = { _, _ -> },
+                onRemoveFolder = {},
+                onAddFolder = {}
+            )
+        }
     }
 }
 
@@ -148,11 +150,13 @@ fun FolderListScreenEmptyPreview() {
 @Composable
 fun FolderListItemPreview() {
     val sampleFolder = MediaPlace(name = "Classical Music", uriString = "uri/classical")
-    FoplrAudioTheme {
-        FolderListItem(
-            folder = sampleFolder,
-            onFolderClick = { _, _ -> },
-            onRemoveFolder = {}
-        )
+    FoplrAudioTheme(dynamicColor = false) {
+        Surface() {
+            FolderListItem(
+                folder = sampleFolder,
+                onFolderClick = { _, _ -> },
+                onRemoveFolder = {}
+            )
+        }
     }
 }

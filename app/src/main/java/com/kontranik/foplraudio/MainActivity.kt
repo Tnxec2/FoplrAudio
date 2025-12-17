@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // enableEdgeToEdge()
         setContent {
-            FoplrAudioTheme {
+            FoplrAudioTheme{
                 AudioPlayerApp()
             }
         }
