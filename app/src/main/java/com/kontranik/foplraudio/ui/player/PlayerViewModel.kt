@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.core.net.toFile
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.ViewModel
@@ -47,7 +48,8 @@ import kotlinx.coroutines.withContext
 @OptIn(UnstableApi::class)
 class PlayerViewModel(
     private val context: Context,
-    private val storageManager: StorageManager) : ViewModel() {
+    private val storageManager: StorageManager
+) : ViewModel() {
 
     var playerController: MediaController? = null
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -103,6 +105,7 @@ class PlayerViewModel(
     }
 
     init {
+
         restoreLastState(context)
         initController(context)
 
@@ -145,6 +148,8 @@ class PlayerViewModel(
     }
 
     private fun initControllerState() {
+
+        Log.d("NIK", "initControllerState")
         playerController?.let { controller ->
             _playerStatus.value = _playerStatus.value.copy(
                 isPlaying = controller.isPlaying,
@@ -155,16 +160,44 @@ class PlayerViewModel(
             setPauseAtEndOfMediaItems(_playerStatus.value.pauseAtEndOfMediaItems)
 
             if (controller.mediaItemCount == 0) {
-                val lastPlaylist = storageManager.loadLastPlaylist()
-                if (lastPlaylist.playlist.isNotEmpty()) {
-                    controller.setMediaItems(lastPlaylist.playlist, lastPlaylist.currentIndex, 0L)
-                    controller.prepare()
+                viewModelScope.launch {
+                    loadAndPrepareLastPlaylist(controller)
                 }
             } else {
-                updatePlaylistState()
+                updatePlaylistState(true)
             }
             updateCurrentTrackInfo(controller.currentMediaItem)
         }
+    }
+
+    private suspend fun loadAndPrepareLastPlaylist(controller: MediaController) {
+        // Zeigen Sie optional einen Ladeindikator an
+        // _playerStatus.update { it.copy(isLoading = true) }
+
+        var currentIndex = 0
+        val lastPlaylist = withContext(Dispatchers.IO) {
+            // I/O-Operation im Hintergrund
+            val pl = storageManager.loadLastPlaylist()
+            currentIndex = pl.currentIndex
+            return@withContext  pl.playlistUris.map { item ->
+                MediaItem.Builder()
+                    .setUri(item.uri)
+                    .setMediaId(item.uri.toString())
+                    .setMediaMetadata(getMetadata(context, item.uri, item.title))
+                    .build()
+            }
+        }
+        Log.d("NIK", "loadAndPrepareLastPlaylist. lastPlaylist size: ${lastPlaylist.size}")
+
+        // Zurück zum Main-Thread, um den Controller zu aktualisieren
+        if (lastPlaylist.isNotEmpty()) {
+            controller.setMediaItems(
+                lastPlaylist,currentIndex, 0L)
+            controller.prepare()
+        }
+
+        // Deaktivieren Sie den Ladeindikator
+        // _playerStatus.update { it.copy(isLoading = false) }
     }
 
     private fun updateCurrentTrackInfo(mediaItem: MediaItem?) {
@@ -192,21 +225,17 @@ class PlayerViewModel(
         }
     }
 
-    private fun updatePlaylistState() {
+    private fun updatePlaylistState(init: Boolean = false) {
         playerController?.let { controller ->
             val items = mutableListOf<MediaItem>()
-            for (i in 0 until controller.mediaItemCount) {
-                items.add(controller.getMediaItemAt(i))
-            }
-            var isPlaylistSame = items.size == _playerStatus.value.playlist.size
+            var isPlaylistSame = controller.mediaItemCount == _playerStatus.value.playlist.size
 
-            if (isPlaylistSame) {
-                for (item in items) {
-                    if (_playerStatus.value.playlist.find { pl -> pl.mediaId == item.mediaId } == null) {
-                        isPlaylistSame = false
-                        break
-                    }
+            for (i in 0 until controller.mediaItemCount) {
+                val item = controller.getMediaItemAt(i)
+                if (isPlaylistSame && _playerStatus.value.playlist[i].mediaId != item.mediaId) {
+                    isPlaylistSame = false
                 }
+                items.add(item)
             }
 
             if (!isPlaylistSame) {
@@ -214,7 +243,7 @@ class PlayerViewModel(
                     playlist = items,
                     currentIndex = controller.currentMediaItemIndex
                 )
-                storageManager.savePlaylist(items)
+                if (!init) storageManager.savePlaylist(items)
             }
             storageManager.savePlaylistCurrentIndex(controller.currentMediaItemIndex)
         } ?: run {
@@ -263,6 +292,10 @@ class PlayerViewModel(
     // --- Navigation & Playback ---
 
     fun openFolder(context: Context, folderUri: Uri, folderName: String, saveStack: Boolean = true) {
+
+        Log.d("NIK", "openFolder")
+        _currentFiles.value = emptyList()
+
         viewModelScope.launch(Dispatchers.IO) {
             val docFile = DocumentFile.fromTreeUri(context, folderUri)
             if (docFile != null && docFile.isDirectory) {
@@ -276,7 +309,7 @@ class PlayerViewModel(
                             parentUri = folderUri
                         )
                     }
-                    .sortedBy { !it.isDirectory }
+                    .sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
 
                 withContext(Dispatchers.Main) {
                     _currentFiles.value = files

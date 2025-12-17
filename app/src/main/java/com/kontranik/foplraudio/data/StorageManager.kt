@@ -11,7 +11,6 @@ import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import com.kontranik.foplraudio.model.FileItem
 import com.kontranik.foplraudio.model.FileItemDTO
@@ -145,8 +144,16 @@ class StorageManager(private val context: Context) {
         items: List<MediaItem>
     ) {
         prefs.edit {
-            val json = gson.toJson(items.map { it.toDTO() })
-            putString(CURRENT_PLAYLIST_KEY, json)
+            val json = items.mapIndexed { index, item ->
+                gson.toJson(
+                    PlaylistItemDto(
+                        index = index,
+                        uri = item.mediaId,
+                        title = item.mediaMetadata.title.toString()
+                    )
+                )
+            }.toSet()
+            putStringSet(CURRENT_PLAYLIST_KEY, json)
             apply()
         }
     }
@@ -169,20 +176,18 @@ class StorageManager(private val context: Context) {
     }
 
     fun loadLastPlaylist(): PlaylistStatus {
-        val result = mutableListOf<MediaItem>()
-        val json = prefs.getString(CURRENT_PLAYLIST_KEY, null)
+        val result = mutableListOf<PlaylistItem>()
+        val json = prefs.getStringSet(CURRENT_PLAYLIST_KEY, null)
         var lastPlaylistIndex = prefs.getInt(CURRENT_PLAYLIST_INDEX_KEY, -1)
         if (json != null) {
             try {
-                val type = object : TypeToken<List<MediaItemDTO>>() {}.type
-                val stack: List<MediaItemDTO> = gson.fromJson(json, type)
-                stack.forEach { item ->
-                    val mediaItem = item.toMediaItem()
-                    val document = DocumentFile.fromTreeUri(context, item.uri.toUri())
+                json.forEach { json ->
+                    val playlistItem: PlaylistItem = gson.fromJson(json, PlaylistItemDto::class.java).toPlaylistItem()
+                    val document = DocumentFile.fromTreeUri(context, playlistItem.uri)
                     if (document?.canRead() == true) {
-                        result.add(mediaItem)
+                        result.add(playlistItem)
                     } else {
-                        Log.w("StorageManager", "No permissions for ${item.uri}. This entry will be removed.")
+                        Log.w("StorageManager", "No permissions for ${playlistItem.uri}. This entry will be removed.")
                     }
                 }
             } catch (e: Exception) {
@@ -190,13 +195,12 @@ class StorageManager(private val context: Context) {
             }
         }
         if (result.isEmpty()) {
-            prefs.edit {
-                remove(CURRENT_PLAYLIST_KEY)
-                remove(CURRENT_PLAYLIST_INDEX_KEY)
-                apply()
-            }
+            clearPlaylist()
             lastPlaylistIndex = -1
         }
+
+        result.sortBy { it.index }
+
         lastPlaylistIndex = min(lastPlaylistIndex, result.size-1)
 
         return PlaylistStatus(
@@ -205,45 +209,22 @@ class StorageManager(private val context: Context) {
     }
 }
 
-data class MediaItemDTO(
+data class PlaylistItem(
+    val index: Int,
+    val uri: Uri,
+    val title: String,
+) {
+    fun toDto(): PlaylistItemDto = PlaylistItemDto(index, uri.toString(), title)
+}
+data class PlaylistItemDto(
+    val index: Int,
     val uri: String,
     val title: String,
-    val artist: String?,
-    val album: String?,
-    val albumArtist: String?,
-    val artworkBytes: ByteArray?
-)
-
-fun MediaItem.toDTO(): MediaItemDTO {
-
-    return MediaItemDTO(
-        uri = mediaId,
-        title = mediaMetadata.title.toString(),
-        artist = mediaMetadata.artist?.toString(),
-        album = mediaMetadata.albumTitle?.toString(),
-        albumArtist = mediaMetadata.albumArtist?.toString(),
-        artworkBytes = mediaMetadata.artworkData,
-    )
+) {
+    fun toPlaylistItem(): PlaylistItem = PlaylistItem(index, uri.toUri(), title)
 }
-
-fun MediaItemDTO.toMediaItem(): MediaItem {
-    val mediaMetadata = MediaMetadata.Builder()
-        .setTitle(title)
-        .setArtist(artist)
-        .setAlbumTitle(album)
-        .setAlbumArtist(albumArtist)
-        .setArtworkData(artworkBytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-        .build()
-
-    return MediaItem.Builder()
-        .setUri(uri)
-        .setMediaId(uri)
-        .setMediaMetadata(mediaMetadata)
-        .build()
-}
-
 data class PlaylistStatus(
-    val playlist: List<MediaItem> = emptyList(),
+    val playlistUris: List<PlaylistItem> = emptyList(),
     val currentIndex: Int = -1
 )
 
