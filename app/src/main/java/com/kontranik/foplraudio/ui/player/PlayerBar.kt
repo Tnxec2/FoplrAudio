@@ -3,12 +3,8 @@ package com.kontranik.foplraudio.ui.player
 import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,41 +13,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.PlayDisabled
-import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.RepeatOne
-import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -59,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.Player
 import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.PlayerStatus
-import com.kontranik.foplraudio.ui.player.helpers.formatDuration
 
 
 @RequiresApi(Build.VERSION_CODES.P)
@@ -234,35 +208,9 @@ private fun PlayerBarContentBig(
     }
 }
 
-@Composable
-private fun PlaybarArtwork(
-    imageBitmap: ImageBitmap?,
-    fallBackIcon: ImageVector,
-    modifier: Modifier
-) {
-    val artworkModifier = modifier
-        .fillMaxWidth()
-
-    if (imageBitmap != null) {
-        Image(
-            bitmap = imageBitmap,
-            contentDescription = stringResource(R.string.cover_art),
-            modifier = artworkModifier,
-            contentScale = ContentScale.Inside
-        )
-    } else {
-        Icon(
-            fallBackIcon,
-            contentDescription = stringResource(R.string.music_note),
-            modifier = artworkModifier.padding(8.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
 
 @Composable
-private fun PlaybarCurrentTrackInfo(
+fun PlaybarCurrentTrackInfo(
     status: PlayerStatus,
     alignment: Alignment.Horizontal = Alignment.Start
 ) {
@@ -289,128 +237,6 @@ private fun PlaybarCurrentTrackInfo(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PlaybarSeekbar(
-    status: PlayerStatus,
-    seekTo: (Long) -> Unit
-) {
-    val interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
-    val colors = SliderDefaults.colors()
-
-
-    Slider(
-        value = status.position.toFloat(),
-        onValueChange = { seekTo(it.toLong()) },
-        valueRange = 0f..status.duration.toFloat(),
-        // modifier = Modifier.height(20.dp)
-        thumb = {
-            Box(
-                modifier = Modifier
-                    .padding(0.dp)
-                    .size(16.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape),
-            )
-        },
-        track = { sliderState ->
-            SliderDefaults.Track(
-                colors = colors,
-                thumbTrackGapSize = 0.dp,
-                enabled = true,
-                sliderState = sliderState,
-                modifier = Modifier.height(4.dp)
-            )
-        },
-        modifier = Modifier.padding(0.dp)
-    )
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(formatDuration(status.position), style = MaterialTheme.typography.labelSmall)
-        Text(formatDuration(status.duration), style = MaterialTheme.typography.labelSmall)
-    }
-}
-
-@Composable
-private fun PlaybarButtons(
-    skipPrev: () -> Unit,
-    togglePlayPause: () -> Unit,
-    status: PlayerStatus,
-    skipNext: () -> Unit,
-    togglePauseAtEndOfMediaItems: () -> Unit,
-    toggleShuffle: () -> Unit,
-    toggleRepeat: () -> Unit,
-    showMenu: Boolean,
-    toggleMenu: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-
-        IconButton(onClick = { toggleMenu() }) {
-            Icon(
-                if (!showMenu) Icons.AutoMirrored.Filled.List else Icons.Default.Close,
-                contentDescription = stringResource(R.string.toggle_menu))
-        }
-
-        IconButton(onClick = { skipPrev() }) {
-            Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.previous))
-        }
-
-        IconButton(
-            onClick = { togglePlayPause() },
-            modifier = Modifier
-                .size(48.dp)
-                .background(MaterialTheme.colorScheme.primary, shape = CircleShape)
-        ) {
-            Icon(
-                if (status.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = stringResource(R.string.play_pause),
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
-        }
-
-        IconButton(onClick = { skipNext() }) {
-            Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.next))
-        }
-
-        VerticalDivider(Modifier.height(18.dp))
-
-        IconButton(onClick = { togglePauseAtEndOfMediaItems() }) {
-            Icon(
-                Icons.Default.PlayDisabled,
-                contentDescription = stringResource(R.string.pause_after_current_item),
-                tint = if (status.pauseAtEndOfMediaItems) MaterialTheme.colorScheme.error else LocalContentColor.current
-            )
-        }
-
-        IconButton(onClick = { toggleShuffle() }) {
-            Icon(
-                Icons.Default.Shuffle,
-                contentDescription = stringResource(R.string.shuffle),
-                tint = if (status.shuffleMode) MaterialTheme.colorScheme.primary else LocalContentColor.current
-            )
-        }
-
-        IconButton(onClick = { toggleRepeat() }) {
-            val icon = when (status.repeatMode) {
-                Player.REPEAT_MODE_ONE -> Icons.Default.RepeatOne
-                else -> Icons.Default.Repeat
-            }
-            Icon(
-                icon,
-                contentDescription = stringResource(R.string.repeat),
-                tint = if (status.repeatMode != Player.REPEAT_MODE_OFF) MaterialTheme.colorScheme.primary else LocalContentColor.current
-            )
-        }
-    }
-}
-
 val sampleStatus = PlayerStatus(
     currentTrackTitle = "Test title",
     currentTrackArtist = "Artist",
@@ -418,11 +244,11 @@ val sampleStatus = PlayerStatus(
     duration = 120000,
     position = 60000,
     isPlaying = true,
-    shuffleMode = false,
-    repeatMode = Player.REPEAT_MODE_OFF,
+    shuffleMode = true,
+    repeatMode = Player.REPEAT_MODE_ONE,
     playlist = emptyList(),
     currentIndex = 0,
-    pauseAtEndOfMediaItems = false
+    pauseAtEndOfMediaItems = true
 
 )
 @Preview

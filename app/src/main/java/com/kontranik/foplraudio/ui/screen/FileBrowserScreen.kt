@@ -27,6 +27,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,9 +41,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.FileItem
+import androidx.core.net.toUri
+import com.kontranik.foplraudio.ui.theme.FoplrAudioTheme
 
 @Composable
 fun FileBrowserScreen(
@@ -53,7 +58,7 @@ fun FileBrowserScreen(
 ) {
     Column {
         if (files.find { it.isDirectory } != null) {
-            Button(
+            OutlinedButton(
                 onClick = onPlayAllRecursive,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -194,4 +199,97 @@ private fun FileListItem(
             }
         }
     )
+}
+
+
+// Beispieldaten für die Vorschau
+val sampleFiles = listOf(
+    FileItem(name = "Rock Music", uri = "folder/rock".toUri(), isDirectory = true, parentUri = Uri.EMPTY),
+    FileItem(name = "Classical Favorites",
+        uri = "folder/classical".toUri(), isDirectory = true, parentUri = Uri.EMPTY),
+    FileItem(name = "podcast_episode_final.mp3", uri = "file/podcast.mp3".toUri(), isDirectory = false, parentUri = Uri.EMPTY),
+    FileItem(name = "A very long file name that should be truncated to see how the UI handles overflow and long text.mp3", uri = Uri.parse("file/long.mp3"), isDirectory = false, parentUri = Uri.EMPTY),
+    FileItem(name = "01 - Track One.wav",
+        uri = "file/track1.wav".toUri(), isDirectory = false, parentUri = Uri.EMPTY),
+    FileItem(name = "Another Folder", uri = "folder/another".toUri(), isDirectory = true, parentUri = Uri.EMPTY),
+)
+
+val sampleAudioFile = FileItem(
+    name = "Greatest_Song_Ever.flac",
+    uri = "file/greatest.flac".toUri(),
+    isDirectory = false,
+    parentUri = Uri.EMPTY
+)
+
+val sampleFolderItem = FileItem(
+    name = "My Awesome Mixtapes",
+    uri = "folder/mixtapes".toUri(),
+    isDirectory = true,
+    parentUri = Uri.EMPTY
+)
+
+@Preview(showBackground = true)
+@Composable
+fun FileBrowserScreenPreview() {
+    FoplrAudioTheme() {
+        Surface() {
+            FileBrowserScreen(
+                files = sampleFiles,
+                onFileClick = {},
+                onContextPlayFolder = {},
+                onContextAddToPlayFolder = {},
+                onPlayAllRecursive = {}
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun FileBrowserScreenEmptyPreview() {
+    FoplrAudioTheme() {
+        Surface() {
+            FileBrowserScreen(
+                files = emptyList(),
+                onFileClick = {},
+                onContextPlayFolder = {},
+                onContextAddToPlayFolder = {},
+                onPlayAllRecursive = {}
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+fun FileListItemAudioPreview() {
+    FoplrAudioTheme() {
+        Surface() {
+            Column {
+                FileListItem(
+                    file = sampleAudioFile,
+                    onFileClick = {},
+                    onContextPlayFolder = {},
+                    onContextAddToPlayFolder = {}
+                )
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360)
+@Composable
+fun FileListItemFolderPreview() {
+    FoplrAudioTheme() {
+        Surface() {
+            Column {
+                FileListItem(
+                    file = sampleFolderItem,
+                    onFileClick = {},
+                    onContextPlayFolder = {},
+                    onContextAddToPlayFolder = {}
+                )
+            }
+        }
+    }
 }
