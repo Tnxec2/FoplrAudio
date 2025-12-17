@@ -67,7 +67,7 @@ class StorageManager(private val context: Context) {
                 Intent.FLAG_GRANT_WRITE_URI_PERMISSION
         try {
             context.contentResolver.releasePersistableUriPermission(uri, takeFlags)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Ignorieren falls Berechtigung nicht mehr existiert
         }
     }
@@ -213,9 +213,7 @@ data class PlaylistItem(
     val index: Int,
     val uri: Uri,
     val title: String,
-) {
-    fun toDto(): PlaylistItemDto = PlaylistItemDto(index, uri.toString(), title)
-}
+)
 data class PlaylistItemDto(
     val index: Int,
     val uri: String,

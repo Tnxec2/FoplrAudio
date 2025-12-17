@@ -28,7 +28,7 @@ fun PlaybarSeekbar(
     status: PlayerStatus,
     seekTo: (Long) -> Unit
 ) {
-    val interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
+    // val interactionSource: MutableInteractionSource = remember { MutableInteractionSource() }
     val colors = SliderDefaults.colors()
 
 
@@ -39,7 +39,7 @@ fun PlaybarSeekbar(
         // modifier = Modifier.height(20.dp)
         thumb = {
             Box(
-                modifier = Modifier.Companion
+                modifier = Modifier
                     .padding(0.dp)
                     .size(16.dp)
                     .background(MaterialTheme.colorScheme.primary, CircleShape),
@@ -51,14 +51,14 @@ fun PlaybarSeekbar(
                 thumbTrackGapSize = 0.dp,
                 enabled = true,
                 sliderState = sliderState,
-                modifier = Modifier.Companion.height(4.dp)
+                modifier = Modifier.height(4.dp)
             )
         },
-        modifier = Modifier.Companion.padding(0.dp)
+        modifier = Modifier.padding(0.dp)
     )
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier.Companion.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
         Text(formatDuration(status.position), style = MaterialTheme.typography.labelSmall)
         Text(formatDuration(status.duration), style = MaterialTheme.typography.labelSmall)

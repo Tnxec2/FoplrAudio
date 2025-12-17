@@ -51,7 +51,7 @@ fun PlayerBar(
         status.currentArtworkBytes?.let { bytes ->
             try {
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
             }
         }

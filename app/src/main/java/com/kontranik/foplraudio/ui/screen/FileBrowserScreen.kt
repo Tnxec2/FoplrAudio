@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -43,9 +42,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.FileItem
-import androidx.core.net.toUri
 import com.kontranik.foplraudio.ui.theme.FoplrAudioTheme
 
 @Composable
@@ -208,7 +207,7 @@ val sampleFiles = listOf(
     FileItem(name = "Classical Favorites",
         uri = "folder/classical".toUri(), isDirectory = true, parentUri = Uri.EMPTY),
     FileItem(name = "podcast_episode_final.mp3", uri = "file/podcast.mp3".toUri(), isDirectory = false, parentUri = Uri.EMPTY),
-    FileItem(name = "A very long file name that should be truncated to see how the UI handles overflow and long text.mp3", uri = Uri.parse("file/long.mp3"), isDirectory = false, parentUri = Uri.EMPTY),
+    FileItem(name = "A very long file name that should be truncated to see how the UI handles overflow and long text.mp3", uri = "file/long.mp3".toUri(), isDirectory = false, parentUri = Uri.EMPTY),
     FileItem(name = "01 - Track One.wav",
         uri = "file/track1.wav".toUri(), isDirectory = false, parentUri = Uri.EMPTY),
     FileItem(name = "Another Folder", uri = "folder/another".toUri(), isDirectory = true, parentUri = Uri.EMPTY),

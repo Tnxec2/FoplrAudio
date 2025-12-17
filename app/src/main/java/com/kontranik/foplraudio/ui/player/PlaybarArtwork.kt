@@ -28,7 +28,7 @@ fun PlaybarArtwork(
             bitmap = imageBitmap,
             contentDescription = stringResource(R.string.cover_art),
             modifier = artworkModifier,
-            contentScale = ContentScale.Companion.Inside
+            contentScale = ContentScale.Inside
         )
     } else {
         Icon(
