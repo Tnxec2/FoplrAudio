@@ -39,6 +39,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -148,7 +149,6 @@ class PlayerViewModel(
 
     private fun initControllerState() {
 
-        Log.d("NIK", "initControllerState")
         playerController?.let { controller ->
             _playerStatus.value = _playerStatus.value.copy(
                 isPlaying = controller.isPlaying,
@@ -171,7 +171,7 @@ class PlayerViewModel(
 
     private suspend fun loadAndPrepareLastPlaylist(controller: MediaController) {
         // Zeigen Sie optional einen Ladeindikator an
-        // _playerStatus.update { it.copy(isLoading = true) }
+        _playerStatus.update { it.copy(loading = true) }
 
         var currentIndex = 0
         val lastPlaylist = withContext(Dispatchers.IO) {
@@ -196,7 +196,7 @@ class PlayerViewModel(
         }
 
         // Deaktivieren Sie den Ladeindikator
-        // _playerStatus.update { it.copy(isLoading = false) }
+        _playerStatus.update { it.copy(loading = false) }
     }
 
     private fun updateCurrentTrackInfo(mediaItem: MediaItem?) {
@@ -374,9 +374,11 @@ class PlayerViewModel(
 
     private fun playFolderRecursive(context: Context, folderUri: Uri, replace: Boolean) {
         viewModelScope.launch(Dispatchers.IO) {
+            _playerStatus.update { it.copy(loading = true) }
             val docFile = DocumentFile.fromTreeUri(context, folderUri)
             val files = if (docFile != null) getAllAudioFilesRecursive(docFile) else emptyList()
             loadMediaItems(context, files, replace)
+            _playerStatus.update { it.copy(loading = false) }
         }
     }
 

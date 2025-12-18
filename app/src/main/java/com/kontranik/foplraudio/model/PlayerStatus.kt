@@ -14,7 +14,8 @@ data class PlayerStatus(
     val duration: Long = 0L,
     val position: Long = 0L,
     val playlist: List<MediaItem> = emptyList(),
-    val currentIndex: Int = -1
+    val currentIndex: Int = -1,
+    val loading: Boolean = false
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -23,6 +24,7 @@ data class PlayerStatus(
         other as PlayerStatus
 
         if (isPlaying != other.isPlaying) return false
+        if (loading != other.loading) return false
         if (shuffleMode != other.shuffleMode) return false
         if (repeatMode != other.repeatMode) return false
         if (pauseAtEndOfMediaItems != other.pauseAtEndOfMediaItems) return false
@@ -39,6 +41,7 @@ data class PlayerStatus(
     override fun hashCode(): Int {
         var result = isPlaying.hashCode()
         result = 31 * result + shuffleMode.hashCode()
+        result = 31 * result + loading.hashCode()
         result = 31 * result + repeatMode
         result = 31 * result + pauseAtEndOfMediaItems.hashCode()
         result = 31 * result + duration.hashCode()

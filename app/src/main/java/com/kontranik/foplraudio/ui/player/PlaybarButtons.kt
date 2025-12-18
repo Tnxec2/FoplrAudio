@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -58,12 +60,27 @@ fun PlaybarButtons(
         val borderCircleModifier = Modifier
             .background(MaterialTheme.colorScheme.primary, shape = CircleShape)
 
-        IconButton(onClick = { toggleMenu() }) {
-            Icon(
-                if (!showMenu) Icons.AutoMirrored.Filled.ListAlt else Icons.Default.Close,
-                contentDescription = stringResource(R.string.toggle_menu)
-            )
+        if (status.loading) {
+            IconButton(
+                onClick = {  }
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.secondary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .align(Alignment.CenterVertically)
+                )
+            }
+        } else {
+            IconButton(onClick = { toggleMenu() }) {
+                Icon(
+                    imageVector = if (!showMenu) Icons.AutoMirrored.Filled.ListAlt else Icons.Default.Close,
+                    contentDescription = stringResource(R.string.toggle_menu)
+                )
+            }
         }
+
 
         IconButton(onClick = { skipPrev() }) {
             Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.previous))
@@ -169,6 +186,7 @@ fun PlaybarButtonsPreview2() {
                     repeatMode = Player.REPEAT_MODE_ALL,
                     pauseAtEndOfMediaItems = false,
                     isPlaying = false,
+                    loading = true
                 ),
                 showMenu = false,
             )

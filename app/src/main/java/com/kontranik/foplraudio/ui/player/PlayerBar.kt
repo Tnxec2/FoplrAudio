@@ -89,6 +89,7 @@ fun PlayerBar(
             toggleMenu = toggleMenu,
             showMenu = showPlaylist,
             clickPlayinfo = clickPlayinfo,
+            loading = status.loading,
         )
     }
 }
@@ -165,7 +166,7 @@ private fun PlayerBarContentBig(
     toggleMenu: () -> Unit,
     showMenu: Boolean,
     clickPlayinfo: () -> Unit,
-
+    loading: Boolean,
     ) {
 
     Column(
@@ -204,7 +205,6 @@ private fun PlayerBarContentBig(
             toggleRepeat,
             showMenu,
             toggleMenu,
-
         )
     }
 }
@@ -273,7 +273,7 @@ private fun PlayerBarContentSmallPreview() {
                 togglePlayPause = {},
                 toggleMenu = {},
                 showMenu = false,
-                clickPlayinfo = {}
+                clickPlayinfo = {},
             )
         }
     }
@@ -299,7 +299,8 @@ private fun PlayerBarContentBigPreview() {
                 togglePlayPause = {},
                 toggleMenu = {},
                 showMenu = false,
-                clickPlayinfo = {}
+                clickPlayinfo = {},
+                loading = false,
             )
         }
     }

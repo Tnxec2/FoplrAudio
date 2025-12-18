@@ -26,4 +26,5 @@
     <string name="no_audio_files_found">No audio files found</string>
     <string name="notification_channel_name">notification channel name</string>
     <string name="toggle_menu">toggle menu</string>
+    <string name="loading">loading</string>
 </resources>
