@@ -14,11 +14,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FeaturedPlayList
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.automirrored.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.FeaturedPlayList
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -45,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.kontranik.foplraudio.R
 import com.kontranik.foplraudio.model.FileItem
+import com.kontranik.foplraudio.model.isPlaylist
 import com.kontranik.foplraudio.ui.theme.FoplrAudioTheme
 
 @Composable
@@ -138,6 +143,12 @@ private fun FileListItem(
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.secondary
                 )
+            else if (file.isPlaylist())
+                Icon(
+                    Icons.Default.FeaturedPlayList,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary
+                )
             else
                 Icon(
                     Icons.Default.AudioFile,
@@ -211,6 +222,8 @@ val sampleFiles = listOf(
     FileItem(name = "01 - Track One.wav",
         uri = "file/track1.wav".toUri(), isDirectory = false, parentUri = Uri.EMPTY),
     FileItem(name = "Another Folder", uri = "folder/another".toUri(), isDirectory = true, parentUri = Uri.EMPTY),
+    FileItem(name = "My Playlist.m3u",
+        uri = "file/my_playlist.m3u".toUri(), isDirectory = false, parentUri = Uri.EMPTY),
 )
 
 val sampleAudioFile = FileItem(

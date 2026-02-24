@@ -14,5 +14,9 @@ fun FileItemDTO.toFileItem() : FileItem {
     return FileItem(name, uri.toUri(), isDirectory, parentUri.toUri())
 }
 
+fun FileItem.isPlaylist() : Boolean {
+    val lower = name.lowercase()
+    return lower.endsWith(".m3u") || lower.endsWith(".m3u8")
+}
 
 
