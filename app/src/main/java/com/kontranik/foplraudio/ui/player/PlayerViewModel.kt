@@ -27,8 +27,6 @@ import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.hls.HlsMediaSource
-import androidx.media3.exoplayer.hls.playlist.HlsPlaylist
-import androidx.media3.exoplayer.hls.playlist.HlsPlaylistParser
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionToken
@@ -305,7 +303,11 @@ class PlayerViewModel(
             val docFile = DocumentFile.fromTreeUri(context, folderUri)
             if (docFile != null && docFile.isDirectory) {
                 val files = docFile.listFiles()
-                    .filter { it.name?.startsWith(".")?.not() == true && (it.isDirectory  || isAudioFile(it.name ?: "", it.uri.toString())) }
+                    .filter {
+                        it.name?.startsWith(".")?.not() == true
+                        && (it.isDirectory  || isAudioFile(it.name ?: "", it.uri.toString()))
+                        && isPlaylist(it.name ?: "").not()
+                    }
                     .map {
                         FileItem(
                             name = it.name ?: context.getString(R.string.unknown),
@@ -511,7 +513,11 @@ class PlayerViewModel(
             if (file.isDirectory && file.name?.startsWith(".") != true) {
                 audioFiles.addAll(getAllAudioFilesRecursive(file))
             } else {
-                if (isAudioFile(file.name ?: "", file.uri.toString())) {
+                if (
+                    isAudioFile(file.name ?: "", file.uri.toString())
+                    &&
+                    isPlaylist(file.name ?: "").not()
+                    ) {
                     audioFiles.add(file)
                 }
             }
