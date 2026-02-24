@@ -82,11 +82,15 @@ fun PlaybarButtons(
         }
 
 
-        IconButton(onClick = { skipPrev() }) {
+        IconButton(
+            enabled = status.loading.not(),
+            onClick = { skipPrev() }
+        ) {
             Icon(Icons.Default.SkipPrevious, contentDescription = stringResource(R.string.previous))
         }
 
         IconButton(
+            enabled = status.loading.not(),
             onClick = { togglePlayPause() },
             modifier = Modifier
                 .size(48.dp)
@@ -99,7 +103,10 @@ fun PlaybarButtons(
             )
         }
 
-        IconButton(onClick = { skipNext() }) {
+        IconButton(
+            enabled = status.loading.not(),
+            onClick = { skipNext() }
+        ) {
             Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.next))
         }
 

@@ -306,7 +306,6 @@ class PlayerViewModel(
                     .filter {
                         it.name?.startsWith(".")?.not() == true
                         && (it.isDirectory  || isAudioFile(it.name ?: "", it.uri.toString()))
-                        && isPlaylist(it.name ?: "").not()
                     }
                     .map {
                         FileItem(
@@ -375,6 +374,7 @@ class PlayerViewModel(
             _playerStatus.update { it.copy(loading = true) }
             loadMediaItems(context, audioFiles, true, selectedFile)
             _playerStatus.update { it.copy(loading = false) }
+            _showPlayList.value = true
         }
     }
 
@@ -436,6 +436,7 @@ class PlayerViewModel(
                 }
             } finally {
                 _playerStatus.update { it.copy(loading = false) }
+                _showPlayList.value = true
             }
         }
     }
@@ -455,6 +456,7 @@ class PlayerViewModel(
             val files = if (docFile != null) getAllAudioFilesRecursive(docFile) else emptyList()
             loadMediaItems(context, files, replace)
             _playerStatus.update { it.copy(loading = false) }
+            _showPlayList.value = true
         }
     }
 

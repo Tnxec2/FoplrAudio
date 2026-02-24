@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -123,7 +124,11 @@ private fun PlayerBarContentSmall(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp)
-                .clickable( onClick = { clickPlayinfo() }),
+                .clickable(
+                    enabled = status.loading.not(),
+                    role = Role.Image,
+                    onClick = { clickPlayinfo() }
+                ),
             verticalAlignment = Alignment.CenterVertically
         ) {
             PlaybarArtwork(
@@ -182,7 +187,10 @@ private fun PlayerBarContentBig(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .weight(1f)
-                .clickable( onClick = { clickPlayinfo() }),
+                .clickable(
+                    enabled = status.loading.not(),
+                    role = Role.Image,
+                    onClick = { clickPlayinfo() }),
         ) {
             PlaybarArtwork(
                 imageBitmap = imageBitmap,
