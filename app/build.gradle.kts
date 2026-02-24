@@ -1,3 +1,5 @@
+import java.util.Date
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -16,7 +18,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.2"
-        setProperty("archivesBaseName", "$applicationId-v$versionCode($versionName)")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -40,6 +41,25 @@ android {
     buildFeatures {
         compose = true
     }
+
+    applicationVariants.all {
+        val variant = this
+        variant.outputs
+            .map { it as com.android.build.gradle.internal.api.BaseVariantOutputImpl }
+//            .filter {
+//                val names = it.name.split("-")
+//                it.name.lowercase().contains(names[0], true)
+//                        && it.name.lowercase().contains(names[1], true)
+//            }
+            .forEach { output ->
+                val outputFileName = "${variant.applicationId}" +
+                        "-v${variant.versionCode}" +
+                        "(${variant.versionName})" +
+                        "-${variant.buildType.name}.apk"
+                output.outputFileName = outputFileName
+            }
+    }
+
 }
 
 dependencies {
@@ -56,6 +76,7 @@ dependencies {
 
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.media3.ui)
     implementation(libs.media3.common)
 
