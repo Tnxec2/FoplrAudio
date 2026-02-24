@@ -25,6 +25,10 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.hls.playlist.HlsPlaylist
+import androidx.media3.exoplayer.hls.playlist.HlsPlaylistParser
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionToken
@@ -42,6 +46,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 
 @RequiresApi(Build.VERSION_CODES.P)
@@ -343,23 +349,91 @@ class PlayerViewModel(
     }
 
     fun playFile(context: Context, selectedFile: FileItem, allFiles: List<FileItem>) {
-        val audioFiles = allFiles.filter { !it.isDirectory }
-        viewModelScope.launch(Dispatchers.IO) {
-            val mediaItems = audioFiles.map { fileItem ->
-                MediaItem.Builder()
-                    .setUri(fileItem.uri)
-                    .setMediaId(fileItem.uri.toString())
-                    .setMediaMetadata(getMetadata(context, fileItem.uri, fileItem.name))
-                    .build()
-            }
 
-            withContext(Dispatchers.Main) {
-                val startIndex = audioFiles.indexOfFirst { it.uri == selectedFile.uri }
-                if (startIndex != -1) {
-                    playerController?.setMediaItems(mediaItems, startIndex, 0L)
-                    playerController?.prepare()
-                    playerController?.play()
+        if (isPlaylist(selectedFile.name)) {
+            playPlaylistFile(context, selectedFile)
+            return
+        }
+
+        playFiles(allFiles, context, selectedFile)
+    }
+
+    private fun playFiles(
+        allFiles: List<FileItem>,
+        context: Context,
+        selectedFile: FileItem
+    ) {
+        val audioFiles = allFiles.filter {
+            it.name.startsWith(".").not()
+                    && (!it.isDirectory || isAudioFile(it.name, it.uri.toString()))
+                    && isPlaylist(it.name).not()
+        }.mapNotNull { DocumentFile.fromSingleUri(context, it.uri) }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            _playerStatus.update { it.copy(loading = true) }
+            loadMediaItems(context, audioFiles, true, selectedFile)
+            _playerStatus.update { it.copy(loading = false) }
+        }
+    }
+
+    private fun playPlaylistFile(
+        context: Context,
+        selectedFile: FileItem
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _playerStatus.update { it.copy(loading = true) }
+
+            try {
+                val contentLines = mutableListOf<String>()
+                context.contentResolver.openInputStream(selectedFile.uri)?.use { inputStream ->
+                    BufferedReader(InputStreamReader(inputStream)).use { reader ->
+                        var line: String? = reader.readLine()
+                        while (line != null) {
+                            contentLines.add(line.trim())
+                            line = reader.readLine()
+                        }
+                    }
                 }
+                if (contentLines.firstOrNull()?.startsWith("#EXTM3U") == true) {
+                    // HLS Playlist
+                    withContext(Dispatchers.Main) {
+                        val hlsDataSourceFactory = DefaultHttpDataSource.Factory()
+                        val uri = selectedFile.uri
+                        val hlsMediaItem = MediaItem.Builder()
+                            .setUri(uri)
+                            .build()
+
+                        val mediaSource =
+                            HlsMediaSource.Factory(hlsDataSourceFactory)
+                                .createMediaSource(hlsMediaItem)
+
+                        playerController?.setMediaItem(mediaSource.mediaItem)
+                        playerController?.prepare()
+                        playerController?.play()
+                    }
+                } else {
+                    // Simple local playlist
+                    val playlistItems = mutableListOf<DocumentFile>()
+                    val parentFolder = DocumentFile.fromTreeUri(context, selectedFile.parentUri)
+
+                    contentLines.forEach { line ->
+                        if (line.isNotBlank() && !line.startsWith("#")) {
+                            val file = parentFolder?.findFile(line)
+                            if (file != null && !file.isDirectory) {
+                                playlistItems.add(file)
+                            }
+                        }
+                    }
+
+                    loadMediaItems(context, playlistItems, true)
+                }
+            } catch (e: Exception) {
+                Log.e("NIK", "Error reading playlist", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Error reading playlist", Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                _playerStatus.update { it.copy(loading = false) }
             }
         }
     }
@@ -382,19 +456,21 @@ class PlayerViewModel(
         }
     }
 
-    private suspend fun loadMediaItems(context: Context, files: List<DocumentFile>, replace: Boolean = false) {
+    private suspend fun loadMediaItems(context: Context, files: List<DocumentFile>, replace: Boolean = false, selectedFile: FileItem? = null) {
         val mediaItems = files.map { file ->
             MediaItem.Builder()
-                .setUri(file.uri)
-                .setMediaId(file.uri.toString())
-                .setMediaMetadata(getMetadata(context, file.uri, file.name ?: context.getString(R.string.unknown)))
-                .build()
+                    .setUri(file.uri)
+                    .setMediaId(file.uri.toString())
+                    .setMediaMetadata(getMetadata(context, file.uri, file.name ?: context.getString(R.string.unknown)))
+                    .build()
+
         }
 
         withContext(Dispatchers.Main) {
             if (mediaItems.isNotEmpty()) {
                 if (replace) {
-                    playerController?.setMediaItems(mediaItems, 0, 0L)
+                    val startIndex = selectedFile?.let{ sf -> files.indexOfFirst { it.uri == sf.uri } } ?: 0
+                    playerController?.setMediaItems(mediaItems, if (startIndex >= 0) startIndex else 0, 0L)
                     playerController?.prepare()
                     playerController?.play()
                 } else {
@@ -497,6 +573,11 @@ class PlayerViewModel(
         val lower = name.lowercase()
         val mime = getMimeType(path)
         return mime?.startsWith("audio/") == true || lower.endsWith(".mp3") || lower.endsWith(".wav") || lower.endsWith(".ogg") || lower.endsWith(".m4a") || lower.endsWith(".flac")
+    }
+
+    private fun isPlaylist(name: String): Boolean {
+        val lower = name.lowercase()
+        return lower.endsWith(".m3u") || lower.endsWith(".m3u8")
     }
 
     private fun getMimeType(fileUrl: String?): String? {
